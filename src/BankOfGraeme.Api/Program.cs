@@ -36,5 +36,6 @@ app.MapOpenApi();
 app.MapCustomerEndpoints();
 app.MapAccountEndpoints();
 app.MapTransactionEndpoints();
+app.MapPaymentEndpoints();
 
 app.Run();

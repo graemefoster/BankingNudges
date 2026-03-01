@@ -40,6 +40,9 @@ public class BankDbContext(DbContextOptions<BankDbContext> options) : DbContext(
 
             e.Property(a => a.RowVersion)
                 .IsRowVersion();
+
+            e.HasIndex(a => new { a.Bsb, a.AccountNumber })
+                .IsUnique();
         });
 
         modelBuilder.Entity<Transaction>(e =>

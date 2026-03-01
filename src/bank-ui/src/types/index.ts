@@ -78,3 +78,10 @@ export function formatCurrency(amount: number): string {
     currency: 'AUD',
   }).format(amount);
 }
+
+export interface PayeeLookup {
+  name: string;
+  accountType: AccountType;
+  accountTypeName: string;
+  customerName: string;
+}

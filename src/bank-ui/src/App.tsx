@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import AccountDetailPage from './pages/AccountDetailPage'
 import TransferPage from './pages/TransferPage'
+import PayPage from './pages/PayPage'
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/accounts/:id" element={<AccountDetailPage />} />
         <Route path="/transfer" element={<TransferPage />} />
+        <Route path="/pay" element={<PayPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

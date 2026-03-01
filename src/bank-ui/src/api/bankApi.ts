@@ -61,3 +61,24 @@ export function transfer(
     body: JSON.stringify({ fromAccountId, toAccountId, amount, description }),
   });
 }
+
+export function lookupAccount(bsb: string, accountNumber: string) {
+  return fetchJson<import('../types').PayeeLookup>(
+    `${BASE}/payments/lookup?bsb=${encodeURIComponent(bsb)}&accountNumber=${encodeURIComponent(accountNumber)}`,
+  );
+}
+
+export function pay(
+  callerCustomerId: string,
+  fromAccountId: string,
+  toBsb: string,
+  toAccountNumber: string,
+  amount: number,
+  description: string,
+) {
+  return fetchJson<void>(`${BASE}/payments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ callerCustomerId: Number(callerCustomerId), fromAccountId: Number(fromAccountId), toBsb, toAccountNumber, amount, description }),
+  });
+}

@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 const navItems = [
   { to: '/dashboard', label: 'Home', icon: '🏠' },
   { to: '/transfer', label: 'Transfer', icon: '💸' },
+  { to: '/pay', label: 'Pay', icon: '💳' },
 ];
 
 export default function Layout() {
