@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-purple: #CF2BE8;
+  --color-brand-mint: #BAFFD3;
+  --color-brand-yellow: #FFE548;
+  --color-brand-blue: #36A6E8;
+  --color-brand-red: #FF5C3B;
+  --color-dark-bg: #111827;
+  --color-dark-card: #1F2937;
+  --color-dark-card-hover: #374151;
+}
+
+body {
+  @apply bg-dark-bg text-white antialiased;
+  margin: 0;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, sans-serif;
+}

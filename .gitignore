@@ -1,0 +1,20 @@
+# .NET
+bin/
+obj/
+*.user
+
+# Node
+node_modules/
+dist/
+
+# IDE
+.vs/
+.vscode/
+*.swp
+
+# Database
+pgdata/
+
+# OS
+.DS_Store
+Thumbs.db
