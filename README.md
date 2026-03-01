@@ -12,6 +12,19 @@ A simple Australian retail banking app — .NET 10 API, PostgreSQL, React/TypeSc
 ### 1. Start the database
 
 ```bash
+# One command to run everything:
+./run.sh
+
+# Or with a fresh seeded database:
+./run.sh --fresh
+```
+
+This starts PostgreSQL, the API (http://localhost:5225), and the UI (http://localhost:5173). Press Ctrl+C to stop.
+
+<details>
+<summary>Manual startup (step by step)</summary>
+
+```bash
 docker compose up -d
 ```
 
@@ -35,6 +48,8 @@ npm run dev
 ```
 
 The frontend runs at **http://localhost:5173** and proxies `/api` to the backend.
+
+</details>
 
 ## Sample Customers
 
