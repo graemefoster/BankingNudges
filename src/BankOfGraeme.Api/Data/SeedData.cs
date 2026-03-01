@@ -6,6 +6,28 @@ public static class SeedData
 {
     public static void Seed(BankDbContext db)
     {
+        // Seed staff users independently so they're available in upgraded DBs
+        if (!db.StaffUsers.Any())
+        {
+            db.StaffUsers.AddRange(
+                new StaffUser
+                {
+                    Username = "admin",
+                    DisplayName = "Admin User",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin"),
+                    Role = "admin"
+                },
+                new StaffUser
+                {
+                    Username = "teller",
+                    DisplayName = "Jane Teller",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("teller"),
+                    Role = "teller"
+                }
+            );
+            db.SaveChanges();
+        }
+
         if (db.Customers.Any()) return;
 
         var sarah = new Customer

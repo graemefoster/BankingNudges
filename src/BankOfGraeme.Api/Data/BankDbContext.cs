@@ -8,6 +8,8 @@ public class BankDbContext(DbContextOptions<BankDbContext> options) : DbContext(
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
+    public DbSet<StaffUser> StaffUsers => Set<StaffUser>();
+    public DbSet<CustomerNote> CustomerNotes => Set<CustomerNote>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -57,6 +59,32 @@ public class BankDbContext(DbContextOptions<BankDbContext> options) : DbContext(
                 .HasForeignKey(t => t.AccountId);
 
             e.HasIndex(t => t.CreatedAt);
+        });
+
+        modelBuilder.Entity<StaffUser>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Username).HasMaxLength(50);
+            e.Property(s => s.DisplayName).HasMaxLength(100);
+            e.Property(s => s.PasswordHash).HasMaxLength(200);
+            e.Property(s => s.Role).HasMaxLength(50);
+            e.HasIndex(s => s.Username).IsUnique();
+        });
+
+        modelBuilder.Entity<CustomerNote>(e =>
+        {
+            e.HasKey(n => n.Id);
+            e.Property(n => n.Content).HasMaxLength(2000);
+
+            e.HasOne(n => n.Customer)
+                .WithMany()
+                .HasForeignKey(n => n.CustomerId);
+
+            e.HasOne(n => n.StaffUser)
+                .WithMany()
+                .HasForeignKey(n => n.StaffUserId);
+
+            e.HasIndex(n => n.CreatedAt);
         });
     }
 }

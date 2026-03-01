@@ -6,7 +6,8 @@ public enum TransactionType
     Withdrawal,
     Transfer,
     Interest,
-    Repayment
+    Repayment,
+    Adjustment
 }
 
 public class Transaction

@@ -10,6 +10,7 @@ builder.Services.AddDbContext<BankDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<StaffAuthService>();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
@@ -37,5 +38,12 @@ app.MapCustomerEndpoints();
 app.MapAccountEndpoints();
 app.MapTransactionEndpoints();
 app.MapPaymentEndpoints();
+
+// CRM endpoints
+app.MapCrmAuthEndpoints();
+app.MapCrmCustomerEndpoints();
+app.MapCrmAccountEndpoints();
+app.MapCrmNoteEndpoints();
+app.MapCrmTransactionEndpoints();
 
 app.Run();

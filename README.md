@@ -19,7 +19,7 @@ A simple Australian retail banking app — .NET 10 API, PostgreSQL, React/TypeSc
 ./run.sh --fresh
 ```
 
-This starts PostgreSQL, the API (http://localhost:5225), and the UI (http://localhost:5173). Press Ctrl+C to stop.
+This starts PostgreSQL, the API (http://localhost:5225), the customer UI (http://localhost:5173), and the staff CRM (http://localhost:5174). Press Ctrl+C to stop.
 
 <details>
 <summary>Manual startup (step by step)</summary>
@@ -74,6 +74,7 @@ The frontend runs at **http://localhost:5173** and proxies `/api` to the backend
 | ORM | Entity Framework Core + Npgsql |
 | Database | PostgreSQL 16 |
 | Frontend | React 19 + TypeScript + Vite |
+| CRM Frontend | React 19 + TypeScript + Vite (separate app) |
 | Styling | Tailwind CSS v4 |
 | Routing | React Router |
 
@@ -86,3 +87,33 @@ The frontend runs at **http://localhost:5173** and proxies `/api` to the backend
 | Yellow | `#FFE548` | Warnings, highlights |
 | Blue | `#36A6E8` | Links, Transaction accounts |
 | Orange-Red | `#FF5C3B` | Errors, Home Loan accounts |
+
+## Staff CRM
+
+The CRM is a separate internal app for bank staff at **http://localhost:5174**.
+
+### Default Staff Credentials
+
+| Username | Password | Role |
+|----------|----------|------|
+| admin | admin | Admin |
+| teller | teller | Teller |
+
+### CRM Features
+
+- **Customer Management** — search, view, and edit customer details (name, email, phone, DOB)
+- **Account Overview** — view all accounts per customer, including closed accounts
+- **Balance Adjustments** — manual credits/debits with audit trail (reason required)
+- **Account Closure** — close accounts (with force option for non-zero balances)
+- **Customer Notes** — add and view timestamped notes with staff attribution
+- **Transaction History** — paginated with filters (type, date, amount)
+
+### CRM Color Palette
+
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Dark Teal | `#234D58` | Sidebar, headings |
+| Bright Green | `#4DD588` | Primary actions, links |
+| Muted Green | `#63A376` | Secondary elements |
+| Light Green | `#AAD7B2` | Backgrounds, highlights |
+| Orange/Coral | `#F07954` | Warnings, destructive actions |

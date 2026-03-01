@@ -24,8 +24,8 @@ done
 cleanup() {
     echo ""
     echo "Shutting down..."
-    kill $API_PID $UI_PID 2>/dev/null || true
-    wait $API_PID $UI_PID 2>/dev/null || true
+    kill $API_PID $UI_PID $CRM_PID 2>/dev/null || true
+    wait $API_PID $UI_PID $CRM_PID 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -54,10 +54,17 @@ cd "$SCRIPT_DIR/src/bank-ui"
 npm run dev &
 UI_PID=$!
 
+# 5. Start CRM
+echo "📋 Starting CRM on http://localhost:5174..."
+cd "$SCRIPT_DIR/src/bank-crm"
+npm run dev &
+CRM_PID=$!
+
 echo ""
 echo "════════════════════════════════════════"
 echo "  🏦 Bank of Graeme is running!"
 echo "  UI:  http://localhost:5173"
+echo "  CRM: http://localhost:5174"
 echo "  API: http://localhost:5225"
 echo "  API docs: http://localhost:5225/openapi/v1.json"
 echo "════════════════════════════════════════"

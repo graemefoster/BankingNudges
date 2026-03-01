@@ -18,6 +18,7 @@ public class Account
     public required string Name { get; set; }
     public decimal Balance { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsActive { get; set; } = true;
 
     // Optimistic concurrency
     public uint RowVersion { get; set; }

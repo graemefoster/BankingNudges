@@ -12,7 +12,7 @@ public class AccountService(BankDbContext db)
         await db.Accounts.Include(a => a.OffsetAccounts).FirstOrDefaultAsync(a => a.Id == id);
 
     public async Task<List<Account>> GetCustomerAccountsAsync(int customerId) =>
-        await db.Accounts.Where(a => a.CustomerId == customerId).OrderBy(a => a.AccountType).ToListAsync();
+        await db.Accounts.Where(a => a.CustomerId == customerId && a.IsActive).OrderBy(a => a.AccountType).ToListAsync();
 
     public async Task<Transaction> DepositAsync(int accountId, decimal amount, string description)
     {
