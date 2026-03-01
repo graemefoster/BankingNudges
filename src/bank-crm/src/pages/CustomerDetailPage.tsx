@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getCustomer, updateCustomer, getNotes, addNote } from '../api/crmApi';
 import type { CustomerDetail, CustomerNote } from '../types';
-import { formatDate, formatDateTime, formatCurrency, accountTypeLabel, accountTypeBadge } from '../types';
+import { formatDate, formatDateTime, formatCurrency, accountTypeLabel } from '../types';
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -65,176 +65,177 @@ export default function CustomerDetailPage() {
   };
 
   if (!customer) {
-    return <div className="text-center py-12 text-text-secondary">Loading...</div>;
+    return <div className="py-4 text-text-secondary text-xs">Loading...</div>;
   }
 
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={() => navigate('/customers')}
-          className="text-crm-secondary hover:text-crm-dark transition-colors"
-        >
-          ← Back
+      <div className="flex items-center gap-2 mb-2">
+        <button onClick={() => navigate('/customers')} className="text-xs text-crm-dark underline hover:no-underline cursor-pointer">
+          &laquo; Back to list
         </button>
-        <h1 className="text-2xl font-bold text-crm-dark">{customer.firstName} {customer.lastName}</h1>
+        <span className="text-text-secondary">|</span>
+        <span className="text-sm font-bold">{customer.firstName} {customer.lastName}</span>
+        <span className="text-xs text-text-secondary">(ID: {customer.id})</span>
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-crm-warning/10 text-crm-warning text-sm rounded-lg">{error}</div>
+        <div className="mb-2 p-1.5 bg-red-100 text-red-700 text-xs border border-red-300">{error}</div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Customer details */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-crm-card rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-crm-dark">Details</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        {/* Left column */}
+        <div className="lg:col-span-2 space-y-3">
+          {/* Customer details */}
+          <fieldset>
+            <legend>Customer Details</legend>
+            <div className="flex justify-end mb-2">
               {!editing ? (
-                <button
-                  onClick={() => setEditing(true)}
-                  className="text-sm text-crm-accent hover:text-crm-secondary transition-colors font-medium"
-                >
-                  Edit
+                <button onClick={() => setEditing(true)} className="text-xs text-crm-dark underline hover:no-underline cursor-pointer">
+                  [Edit]
                 </button>
               ) : (
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setEditing(false)}
-                    className="text-sm text-text-secondary hover:text-text-primary transition-colors"
-                  >
-                    Cancel
+                  <button onClick={() => setEditing(false)} className="text-xs text-text-secondary underline hover:no-underline cursor-pointer">
+                    [Cancel]
                   </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="text-sm bg-crm-accent text-crm-dark px-3 py-1 rounded-lg font-medium hover:bg-crm-accent/90 disabled:opacity-50"
-                  >
-                    {saving ? 'Saving...' : 'Save'}
+                  <button onClick={handleSave} disabled={saving} className="text-xs text-crm-dark underline hover:no-underline disabled:opacity-50 cursor-pointer">
+                    {saving ? '[Saving...]' : '[Save]'}
                   </button>
                 </div>
               )}
             </div>
 
             {editing ? (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1">First Name</label>
-                  <input value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crm-accent" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1">Last Name</label>
-                  <input value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crm-accent" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1">Email</label>
-                  <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crm-accent" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1">Phone</label>
-                  <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crm-accent" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1">Date of Birth</label>
-                  <input type="date" value={form.dateOfBirth} onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crm-accent" />
-                </div>
-              </div>
+              <table className="text-xs bg-white">
+                <tbody>
+                  <tr>
+                    <td className="px-2 py-1 bg-gray-50 font-bold w-32">First Name</td>
+                    <td className="px-2 py-1">
+                      <input value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                        className="w-full px-1 py-0.5 border border-border text-xs" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1 bg-gray-50 font-bold">Last Name</td>
+                    <td className="px-2 py-1">
+                      <input value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                        className="w-full px-1 py-0.5 border border-border text-xs" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1 bg-gray-50 font-bold">Email</td>
+                    <td className="px-2 py-1">
+                      <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        className="w-full px-1 py-0.5 border border-border text-xs" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1 bg-gray-50 font-bold">Phone</td>
+                    <td className="px-2 py-1">
+                      <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                        className="w-full px-1 py-0.5 border border-border text-xs" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1 bg-gray-50 font-bold">Date of Birth</td>
+                    <td className="px-2 py-1">
+                      <input type="date" value={form.dateOfBirth} onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })}
+                        className="px-1 py-0.5 border border-border text-xs" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             ) : (
-              <dl className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <dt className="text-text-secondary text-xs">Email</dt>
-                  <dd className="font-medium">{customer.email}</dd>
-                </div>
-                <div>
-                  <dt className="text-text-secondary text-xs">Phone</dt>
-                  <dd className="font-medium">{customer.phone || '—'}</dd>
-                </div>
-                <div>
-                  <dt className="text-text-secondary text-xs">Date of Birth</dt>
-                  <dd className="font-medium">{formatDate(customer.dateOfBirth)}</dd>
-                </div>
-                <div>
-                  <dt className="text-text-secondary text-xs">Customer Since</dt>
-                  <dd className="font-medium">{formatDate(customer.createdAt)}</dd>
-                </div>
-              </dl>
+              <table className="text-xs bg-white">
+                <tbody>
+                  <tr><td className="px-2 py-1 bg-gray-50 font-bold w-32">Email</td><td className="px-2 py-1">{customer.email}</td></tr>
+                  <tr><td className="px-2 py-1 bg-gray-50 font-bold">Phone</td><td className="px-2 py-1">{customer.phone || '—'}</td></tr>
+                  <tr><td className="px-2 py-1 bg-gray-50 font-bold">Date of Birth</td><td className="px-2 py-1">{formatDate(customer.dateOfBirth)}</td></tr>
+                  <tr><td className="px-2 py-1 bg-gray-50 font-bold">Customer Since</td><td className="px-2 py-1">{formatDate(customer.createdAt)}</td></tr>
+                </tbody>
+              </table>
             )}
-          </div>
+          </fieldset>
 
-          {/* Accounts */}
-          <div className="bg-crm-card rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-crm-dark mb-4">Accounts</h2>
-            <div className="space-y-3">
-              {customer.accounts.map((a) => (
-                <div
-                  key={a.id}
-                  onClick={() => navigate(`/accounts/${a.id}`)}
-                  className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-crm-card-hover cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${accountTypeBadge[a.accountType]}`}>
-                      {accountTypeLabel[a.accountType]}
-                    </span>
-                    <span className="text-sm font-medium">{a.name}</span>
-                    {!a.isActive && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">Closed</span>
-                    )}
-                  </div>
-                  <span className={`text-sm font-semibold ${a.balance < 0 ? 'text-crm-warning' : 'text-crm-dark'}`}>
-                    {formatCurrency(a.balance)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Accounts table */}
+          <fieldset>
+            <legend>Accounts</legend>
+            <table className="w-full text-xs bg-white">
+              <thead>
+                <tr className="bg-crm-dark text-white text-left">
+                  <th className="px-2 py-1 font-normal">ID</th>
+                  <th className="px-2 py-1 font-normal">Name</th>
+                  <th className="px-2 py-1 font-normal">Type</th>
+                  <th className="px-2 py-1 font-normal text-right">Balance</th>
+                  <th className="px-2 py-1 font-normal text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customer.accounts.map((a, i) => (
+                  <tr
+                    key={a.id}
+                    onClick={() => navigate(`/accounts/${a.id}`)}
+                    className={`cursor-pointer hover:bg-crm-highlight/30 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                  >
+                    <td className="px-2 py-1 text-text-secondary">{a.id}</td>
+                    <td className="px-2 py-1 font-bold text-crm-dark underline">{a.name}</td>
+                    <td className="px-2 py-1">{accountTypeLabel[a.accountType]}</td>
+                    <td className={`px-2 py-1 text-right font-mono ${a.balance < 0 ? 'text-red-700' : ''}`}>
+                      {formatCurrency(a.balance)}
+                    </td>
+                    <td className="px-2 py-1 text-center">
+                      {a.isActive
+                        ? <span className="text-crm-secondary">Active</span>
+                        : <span className="text-red-600 font-bold">CLOSED</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </fieldset>
         </div>
 
-        {/* Notes sidebar */}
-        <div className="space-y-6">
-          <div className="bg-crm-card rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-crm-dark mb-4">Notes</h2>
+        {/* Notes column */}
+        <div>
+          <fieldset>
+            <legend>Notes</legend>
 
             {/* Add note */}
-            <div className="mb-4">
+            <div className="mb-2">
               <textarea
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
                 placeholder="Add a note..."
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crm-accent resize-none"
+                className="w-full px-2 py-1 border border-border text-xs resize-none"
               />
               <button
                 onClick={handleAddNote}
                 disabled={!newNote.trim()}
-                className="mt-2 w-full py-2 bg-crm-accent text-crm-dark text-sm font-medium rounded-lg hover:bg-crm-accent/90 disabled:opacity-40 transition-colors"
+                className="mt-1 px-3 py-1 bg-crm-dark text-white text-xs font-bold border border-crm-dark hover:bg-crm-dark/90 disabled:opacity-40 cursor-pointer"
               >
                 Add Note
               </button>
             </div>
 
             {/* Notes list */}
-            <div className="space-y-3">
+            <div className="space-y-1 max-h-80 overflow-y-auto">
               {notes.length === 0 ? (
-                <p className="text-sm text-text-secondary text-center py-4">No notes yet</p>
+                <p className="text-xs text-text-secondary py-2">No notes on file.</p>
               ) : (
                 notes.map((n) => (
-                  <div key={n.id} className="p-3 bg-crm-bg rounded-lg">
-                    <p className="text-sm">{n.content}</p>
-                    <div className="mt-2 flex items-center justify-between text-xs text-text-secondary">
-                      <span>{n.author}</span>
-                      <span>{formatDateTime(n.createdAt)}</span>
+                  <div key={n.id} className="border border-border bg-white p-1.5 text-xs">
+                    <p>{n.content}</p>
+                    <div className="mt-1 text-[10px] text-text-secondary">
+                      — {n.author}, {formatDateTime(n.createdAt)}
                     </div>
                   </div>
                 ))
               )}
             </div>
-          </div>
+          </fieldset>
         </div>
       </div>
     </div>

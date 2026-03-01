@@ -6,16 +6,45 @@
   --color-crm-secondary: #63A376;
   --color-crm-highlight: #AAD7B2;
   --color-crm-warning: #F07954;
-  --color-crm-bg: #F4F7F5;
+  --color-crm-bg: #EEEEE9;
   --color-crm-card: #FFFFFF;
-  --color-crm-card-hover: #F0F5F1;
-  --color-text-primary: #1F2937;
-  --color-text-secondary: #6B7280;
+  --color-crm-card-hover: #F5F5F0;
+  --color-text-primary: #333333;
+  --color-text-secondary: #666666;
+  --color-border: #CCCCCC;
 }
 
 body {
-  @apply bg-crm-bg text-text-primary antialiased;
+  @apply bg-crm-bg text-text-primary;
   margin: 0;
   min-height: 100vh;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  font-size: 12px;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #ccc;
+}
+
+input, select, textarea, button {
+  font-family: inherit;
+  font-size: 12px;
+}
+
+fieldset {
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  margin: 0;
+}
+
+legend {
+  font-weight: bold;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #666;
+  padding: 0 4px;
 }

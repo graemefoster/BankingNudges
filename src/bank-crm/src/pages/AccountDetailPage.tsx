@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getAccount, getTransactions, adjustBalance, closeAccount } from '../api/crmApi';
 import type { Account, Transaction } from '../types';
 import {
-  formatCurrency, formatDateTime, accountTypeLabel, accountTypeBadge,
+  formatCurrency, formatDateTime, accountTypeLabel,
   transactionTypeLabel,
 } from '../types';
 
@@ -97,146 +97,157 @@ export default function AccountDetailPage() {
   const totalPages = Math.ceil(total / 20);
 
   if (!account) {
-    return <div className="text-center py-12 text-text-secondary">Loading...</div>;
+    return <div className="py-4 text-text-secondary text-xs">Loading...</div>;
   }
 
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="text-crm-secondary hover:text-crm-dark transition-colors">
-          ← Back
+      <div className="flex items-center gap-2 mb-2 text-xs">
+        <button onClick={() => navigate(-1)} className="text-crm-dark underline hover:no-underline cursor-pointer">
+          &laquo; Back
         </button>
-        <h1 className="text-2xl font-bold text-crm-dark">{account.name}</h1>
-        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${accountTypeBadge[account.accountType]}`}>
-          {accountTypeLabel[account.accountType]}
-        </span>
-        {!account.isActive && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">Closed</span>
-        )}
+        <span className="text-text-secondary">|</span>
+        <span className="font-bold">{account.name}</span>
+        <span className="text-text-secondary">({accountTypeLabel[account.accountType]})</span>
+        {!account.isActive && <span className="text-red-600 font-bold">[CLOSED]</span>}
       </div>
 
-      {/* Account summary card */}
-      <div className="bg-crm-card rounded-xl shadow-sm p-6 mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-text-secondary">Current Balance</p>
-            <p className={`text-3xl font-bold ${account.balance < 0 ? 'text-crm-warning' : 'text-crm-dark'}`}>
-              {formatCurrency(account.balance)}
-            </p>
-            <p className="text-xs text-text-secondary mt-1">
-              BSB: {account.bsb} | Account: {account.accountNumber}
-            </p>
+      {/* Account summary */}
+      <fieldset className="mb-3">
+        <legend>Account Summary</legend>
+        <table className="text-xs bg-white">
+          <tbody>
+            <tr>
+              <td className="px-2 py-1 bg-gray-50 font-bold w-32">Balance</td>
+              <td className={`px-2 py-1 font-mono font-bold ${account.balance < 0 ? 'text-red-700' : ''}`}>
+                {formatCurrency(account.balance)}
+              </td>
+            </tr>
+            <tr>
+              <td className="px-2 py-1 bg-gray-50 font-bold">BSB</td>
+              <td className="px-2 py-1 font-mono">{account.bsb}</td>
+            </tr>
+            <tr>
+              <td className="px-2 py-1 bg-gray-50 font-bold">Account No.</td>
+              <td className="px-2 py-1 font-mono">{account.accountNumber}</td>
+            </tr>
+            <tr>
+              <td className="px-2 py-1 bg-gray-50 font-bold">Status</td>
+              <td className="px-2 py-1">
+                {account.isActive
+                  ? <span className="text-crm-secondary">Active</span>
+                  : <span className="text-red-600 font-bold">CLOSED</span>}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        {account.isActive && (
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={() => setShowAdjust(true)}
+              className="px-3 py-1 bg-crm-dark text-white text-xs font-bold border border-crm-dark hover:bg-crm-dark/90 cursor-pointer"
+            >
+              Adjust Balance
+            </button>
+            <button
+              onClick={() => setShowClose(true)}
+              className="px-3 py-1 bg-white text-red-700 text-xs font-bold border border-red-400 hover:bg-red-50 cursor-pointer"
+            >
+              Close Account
+            </button>
           </div>
-          {account.isActive && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowAdjust(true)}
-                className="px-4 py-2 bg-crm-accent text-crm-dark text-sm font-medium rounded-lg hover:bg-crm-accent/90 transition-colors"
-              >
-                Adjust Balance
-              </button>
-              <button
-                onClick={() => setShowClose(true)}
-                className="px-4 py-2 bg-crm-warning/10 text-crm-warning text-sm font-medium rounded-lg hover:bg-crm-warning/20 transition-colors"
-              >
-                Close Account
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+        )}
+      </fieldset>
 
-      {/* Adjust modal */}
+      {/* Adjust dialog */}
       {showAdjust && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowAdjust(false)}>
-          <div className="bg-crm-card rounded-xl shadow-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-crm-dark mb-4">Adjust Balance</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-text-secondary mb-1">Amount (positive to credit, negative to debit)</label>
-                <input
-                  type="number" step="0.01" value={adjustAmount}
-                  onChange={(e) => setAdjustAmount(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crm-accent"
-                  placeholder="e.g. 100.00 or -50.00"
-                />
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setShowAdjust(false)}>
+          <div className="bg-crm-bg border border-border p-3 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <fieldset>
+              <legend>Adjust Balance</legend>
+              <table className="text-xs w-full">
+                <tbody>
+                  <tr>
+                    <td className="px-2 py-1 bg-gray-50 font-bold w-24">Amount</td>
+                    <td className="px-2 py-1">
+                      <input type="number" step="0.01" value={adjustAmount}
+                        onChange={(e) => setAdjustAmount(e.target.value)}
+                        className="w-full px-1 py-0.5 border border-border text-xs font-mono"
+                        placeholder="+100.00 or -50.00" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1 bg-gray-50 font-bold">Reason</td>
+                    <td className="px-2 py-1">
+                      <input value={adjustReason}
+                        onChange={(e) => setAdjustReason(e.target.value)}
+                        className="w-full px-1 py-0.5 border border-border text-xs"
+                        placeholder="Fee reversal, Interest correction..." />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div className="flex justify-end gap-2 mt-2">
+                <button onClick={() => setShowAdjust(false)} className="px-2 py-1 text-xs border border-border bg-white hover:bg-gray-50 cursor-pointer">
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAdjust}
+                  disabled={adjusting || !adjustAmount || !adjustReason.trim()}
+                  className="px-3 py-1 bg-crm-dark text-white text-xs font-bold border border-crm-dark hover:bg-crm-dark/90 disabled:opacity-40 cursor-pointer"
+                >
+                  {adjusting ? 'Applying...' : 'Apply'}
+                </button>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-text-secondary mb-1">Reason (required)</label>
-                <input
-                  value={adjustReason}
-                  onChange={(e) => setAdjustReason(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crm-accent"
-                  placeholder="e.g. Fee reversal, Interest correction"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => setShowAdjust(false)} className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary">
-                Cancel
-              </button>
-              <button
-                onClick={handleAdjust}
-                disabled={adjusting || !adjustAmount || !adjustReason.trim()}
-                className="px-4 py-2 bg-crm-accent text-crm-dark text-sm font-medium rounded-lg hover:bg-crm-accent/90 disabled:opacity-40"
-              >
-                {adjusting ? 'Adjusting...' : 'Apply Adjustment'}
-              </button>
-            </div>
+            </fieldset>
           </div>
         </div>
       )}
 
-      {/* Close modal */}
+      {/* Close dialog */}
       {showClose && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowClose(false)}>
-          <div className="bg-crm-card rounded-xl shadow-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-crm-warning mb-2">Close Account</h3>
-            <p className="text-sm text-text-secondary mb-4">
-              Are you sure you want to close this account? This action cannot be undone.
-            </p>
-            {closeError && (
-              <div className="mb-3 p-3 bg-crm-warning/10 text-crm-warning text-sm rounded-lg">
-                {closeError}
-              </div>
-            )}
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowClose(false)} className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary">
-                Cancel
-              </button>
-              {closeError.includes('non-zero') ? (
-                <button
-                  onClick={() => handleClose(true)}
-                  disabled={closing}
-                  className="px-4 py-2 bg-crm-warning text-white text-sm font-medium rounded-lg hover:bg-crm-warning/90 disabled:opacity-40"
-                >
-                  {closing ? 'Closing...' : 'Force Close'}
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleClose(false)}
-                  disabled={closing}
-                  className="px-4 py-2 bg-crm-warning text-white text-sm font-medium rounded-lg hover:bg-crm-warning/90 disabled:opacity-40"
-                >
-                  {closing ? 'Closing...' : 'Close Account'}
-                </button>
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setShowClose(false)}>
+          <div className="bg-crm-bg border border-border p-3 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <fieldset>
+              <legend>Close Account</legend>
+              <p className="text-xs mb-2">
+                <strong>Warning:</strong> Closing this account is irreversible. Confirm below.
+              </p>
+              {closeError && (
+                <div className="mb-2 p-1.5 bg-red-100 text-red-700 text-xs border border-red-300">
+                  {closeError}
+                </div>
               )}
-            </div>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setShowClose(false)} className="px-2 py-1 text-xs border border-border bg-white hover:bg-gray-50 cursor-pointer">
+                  Cancel
+                </button>
+                {closeError.includes('non-zero') ? (
+                  <button onClick={() => handleClose(true)} disabled={closing}
+                    className="px-3 py-1 bg-red-700 text-white text-xs font-bold border border-red-700 hover:bg-red-800 disabled:opacity-40 cursor-pointer">
+                    {closing ? 'Closing...' : 'Force Close'}
+                  </button>
+                ) : (
+                  <button onClick={() => handleClose(false)} disabled={closing}
+                    className="px-3 py-1 bg-red-700 text-white text-xs font-bold border border-red-700 hover:bg-red-800 disabled:opacity-40 cursor-pointer">
+                    {closing ? 'Closing...' : 'Close Account'}
+                  </button>
+                )}
+              </div>
+            </fieldset>
           </div>
         </div>
       )}
 
       {/* Transactions */}
-      <div className="bg-crm-card rounded-xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-crm-dark">Transactions</h2>
-          <select
-            value={typeFilter}
-            onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-crm-accent"
-          >
-            <option value="">All types</option>
+      <fieldset>
+        <legend>Transaction History</legend>
+        <div className="mb-2 flex items-center gap-2 text-xs">
+          <label className="text-text-secondary">Filter by type:</label>
+          <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+            className="px-1 py-0.5 border border-border text-xs bg-white">
+            <option value="">All</option>
             <option value="Deposit">Deposit</option>
             <option value="Withdrawal">Withdrawal</option>
             <option value="Transfer">Transfer</option>
@@ -244,35 +255,34 @@ export default function AccountDetailPage() {
             <option value="Repayment">Repayment</option>
             <option value="Adjustment">Adjustment</option>
           </select>
+          <span className="text-text-secondary ml-auto">{total} record(s)</span>
         </div>
 
-        <table className="w-full text-sm">
+        <table className="w-full text-xs bg-white">
           <thead>
-            <tr className="bg-crm-dark/5 text-left">
-              <th className="px-6 py-3 font-medium text-text-secondary">Date</th>
-              <th className="px-6 py-3 font-medium text-text-secondary">Description</th>
-              <th className="px-6 py-3 font-medium text-text-secondary">Type</th>
-              <th className="px-6 py-3 font-medium text-text-secondary text-right">Amount</th>
-              <th className="px-6 py-3 font-medium text-text-secondary text-right">Balance</th>
+            <tr className="bg-crm-dark text-white text-left">
+              <th className="px-2 py-1 font-normal">Date</th>
+              <th className="px-2 py-1 font-normal">Description</th>
+              <th className="px-2 py-1 font-normal">Type</th>
+              <th className="px-2 py-1 font-normal text-right">Amount</th>
+              <th className="px-2 py-1 font-normal text-right">Balance</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} className="px-6 py-8 text-center text-text-secondary">Loading...</td></tr>
+              <tr><td colSpan={5} className="px-2 py-4 text-center text-text-secondary">Loading...</td></tr>
             ) : transactions.length === 0 ? (
-              <tr><td colSpan={5} className="px-6 py-8 text-center text-text-secondary">No transactions</td></tr>
+              <tr><td colSpan={5} className="px-2 py-4 text-center text-text-secondary">No transactions found.</td></tr>
             ) : (
-              transactions.map((t) => (
-                <tr key={t.id} className="border-t border-gray-50">
-                  <td className="px-6 py-3 text-text-secondary">{formatDateTime(t.createdAt)}</td>
-                  <td className="px-6 py-3">{t.description}</td>
-                  <td className="px-6 py-3">
-                    <span className="text-xs text-text-secondary">{transactionTypeLabel[t.transactionType]}</span>
-                  </td>
-                  <td className={`px-6 py-3 text-right font-medium ${t.amount >= 0 ? 'text-crm-secondary' : 'text-crm-warning'}`}>
+              transactions.map((t, i) => (
+                <tr key={t.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                  <td className="px-2 py-1 text-text-secondary whitespace-nowrap">{formatDateTime(t.createdAt)}</td>
+                  <td className="px-2 py-1">{t.description}</td>
+                  <td className="px-2 py-1 text-text-secondary">{transactionTypeLabel[t.transactionType]}</td>
+                  <td className={`px-2 py-1 text-right font-mono ${t.amount >= 0 ? 'text-crm-secondary' : 'text-red-700'}`}>
                     {t.amount >= 0 ? '+' : ''}{formatCurrency(t.amount)}
                   </td>
-                  <td className="px-6 py-3 text-right text-text-secondary">{formatCurrency(t.balanceAfter)}</td>
+                  <td className="px-2 py-1 text-right font-mono text-text-secondary">{formatCurrency(t.balanceAfter)}</td>
                 </tr>
               ))
             )}
@@ -281,25 +291,19 @@ export default function AccountDetailPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 py-4 border-t border-gray-100">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-3 py-1.5 text-sm bg-crm-bg border border-gray-200 rounded-lg hover:bg-crm-card-hover disabled:opacity-40"
-            >
-              Previous
+          <div className="flex items-center gap-2 mt-2 text-xs">
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
+              className="px-2 py-0.5 bg-white border border-border hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+              &laquo; Prev
             </button>
-            <span className="text-sm text-text-secondary">Page {page} of {totalPages}</span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="px-3 py-1.5 text-sm bg-crm-bg border border-gray-200 rounded-lg hover:bg-crm-card-hover disabled:opacity-40"
-            >
-              Next
+            <span className="text-text-secondary">Page {page} of {totalPages}</span>
+            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+              className="px-2 py-0.5 bg-white border border-border hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+              Next &raquo;
             </button>
           </div>
         )}
-      </div>
+      </fieldset>
     </div>
   );
 }

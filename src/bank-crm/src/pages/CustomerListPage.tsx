@@ -31,89 +31,85 @@ export default function CustomerListPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-crm-dark">Customers</h1>
-        <span className="text-sm text-text-secondary">{total} total</span>
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-sm font-bold uppercase text-text-secondary">Customer Search</h2>
+        <span className="text-xs text-text-secondary">{total} record(s)</span>
       </div>
 
       {/* Search */}
-      <div className="mb-4">
+      <div className="mb-2">
         <input
           type="text"
           placeholder="Search by name, email, or phone..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="w-full px-4 py-2.5 bg-crm-card border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-crm-accent focus:border-transparent text-sm"
+          className="w-full px-2 py-1 border border-border bg-white text-xs"
         />
       </div>
 
       {/* Table */}
-      <div className="bg-crm-card rounded-xl shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-crm-dark/5 text-left">
-              <th className="px-4 py-3 font-medium text-text-secondary">Name</th>
-              <th className="px-4 py-3 font-medium text-text-secondary">Email</th>
-              <th className="px-4 py-3 font-medium text-text-secondary">Phone</th>
-              <th className="px-4 py-3 font-medium text-text-secondary text-center">Accounts</th>
-              <th className="px-4 py-3 font-medium text-text-secondary">Since</th>
+      <table className="w-full text-xs bg-white">
+        <thead>
+          <tr className="bg-crm-dark text-white text-left">
+            <th className="px-2 py-1 font-normal">ID</th>
+            <th className="px-2 py-1 font-normal">Name</th>
+            <th className="px-2 py-1 font-normal">Email</th>
+            <th className="px-2 py-1 font-normal">Phone</th>
+            <th className="px-2 py-1 font-normal text-center">Accts</th>
+            <th className="px-2 py-1 font-normal">Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading ? (
+            <tr>
+              <td colSpan={6} className="px-2 py-4 text-center text-text-secondary">
+                Loading...
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-text-secondary">
-                  Loading...
-                </td>
+          ) : customers.length === 0 ? (
+            <tr>
+              <td colSpan={6} className="px-2 py-4 text-center text-text-secondary">
+                No customers found
+              </td>
+            </tr>
+          ) : (
+            customers.map((c, i) => (
+              <tr
+                key={c.id}
+                onClick={() => navigate(`/customers/${c.id}`)}
+                className={`cursor-pointer hover:bg-crm-highlight/30 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+              >
+                <td className="px-2 py-1 text-text-secondary">{c.id}</td>
+                <td className="px-2 py-1 font-bold text-crm-dark underline">{c.fullName}</td>
+                <td className="px-2 py-1">{c.email}</td>
+                <td className="px-2 py-1">{c.phone || '—'}</td>
+                <td className="px-2 py-1 text-center">{c.activeAccountCount ?? c.accountCount}</td>
+                <td className="px-2 py-1 text-text-secondary">{formatDate(c.createdAt)}</td>
               </tr>
-            ) : customers.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-text-secondary">
-                  No customers found
-                </td>
-              </tr>
-            ) : (
-              customers.map((c) => (
-                <tr
-                  key={c.id}
-                  onClick={() => navigate(`/customers/${c.id}`)}
-                  className="border-t border-gray-100 hover:bg-crm-card-hover cursor-pointer transition-colors"
-                >
-                  <td className="px-4 py-3 font-medium">{c.fullName}</td>
-                  <td className="px-4 py-3 text-text-secondary">{c.email}</td>
-                  <td className="px-4 py-3 text-text-secondary">{c.phone || '—'}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="inline-flex items-center justify-center w-7 h-7 bg-crm-accent/15 text-crm-dark text-xs font-medium rounded-full">
-                      {c.activeAccountCount ?? c.accountCount}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-text-secondary">{formatDate(c.createdAt)}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+            ))
+          )}
+        </tbody>
+      </table>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-4">
+        <div className="flex items-center gap-2 mt-2 text-xs">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-3 py-1.5 text-sm bg-crm-card border border-gray-200 rounded-lg hover:bg-crm-card-hover disabled:opacity-40"
+            className="px-2 py-0.5 bg-white border border-border hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            Previous
+            &laquo; Prev
           </button>
-          <span className="text-sm text-text-secondary">
+          <span className="text-text-secondary">
             Page {page} of {totalPages}
           </span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="px-3 py-1.5 text-sm bg-crm-card border border-gray-200 rounded-lg hover:bg-crm-card-hover disabled:opacity-40"
+            className="px-2 py-0.5 bg-white border border-border hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            Next
+            Next &raquo;
           </button>
         </div>
       )}

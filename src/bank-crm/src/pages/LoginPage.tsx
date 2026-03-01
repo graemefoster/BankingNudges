@@ -25,51 +25,50 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="w-full max-w-sm">
-      <div className="bg-crm-card rounded-xl shadow-lg p-8">
-        <h2 className="text-xl font-bold text-crm-dark mb-1">Staff Login</h2>
-        <p className="text-sm text-text-secondary mb-6">Sign in to the CRM system</p>
+    <div className="w-full max-w-xs">
+      <fieldset>
+        <legend>Staff Login</legend>
 
         {error && (
-          <div className="mb-4 p-3 bg-crm-warning/10 text-crm-warning text-sm rounded-lg">
+          <div className="mb-2 p-1.5 bg-red-100 text-red-700 text-xs border border-red-300">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-2">
           <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">Username</label>
+            <label className="block text-xs mb-0.5">Username</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crm-accent focus:border-transparent"
+              className="w-full px-2 py-1 border border-border bg-white text-xs"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">Password</label>
+            <label className="block text-xs mb-0.5">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crm-accent focus:border-transparent"
+              className="w-full px-2 py-1 border border-border bg-white text-xs"
               required
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-crm-accent text-crm-dark font-semibold rounded-lg hover:bg-crm-accent/90 transition-colors disabled:opacity-50"
+            className="w-full py-1.5 bg-crm-dark text-white text-xs font-bold hover:bg-crm-dark/90 disabled:opacity-50 border border-crm-dark cursor-pointer"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
-        <p className="mt-4 text-xs text-text-secondary text-center">
-          Demo: admin/admin or teller/teller
+        <p className="mt-2 text-[10px] text-text-secondary text-center">
+          Demo credentials: admin/admin or teller/teller
         </p>
-      </div>
+      </fieldset>
     </div>
   );
 }
