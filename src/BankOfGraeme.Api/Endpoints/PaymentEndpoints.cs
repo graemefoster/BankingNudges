@@ -18,7 +18,7 @@ public static class PaymentEndpoints
         {
             try
             {
-                var (from, to) = await svc.PayAsync(req.CallerCustomerId, req.FromAccountId, req.ToBsb, req.ToAccountNumber, req.Amount, req.Description);
+                var (from, to) = await svc.PayAsync(req.CallerCustomerId, req.FromAccountId, req.ToBsb, req.ToAccountNumber, req.Amount, req.Description, req.Reference);
                 return Results.Ok(new { from, to });
             }
             catch (InvalidOperationException ex)
@@ -29,4 +29,4 @@ public static class PaymentEndpoints
     }
 }
 
-public record PayRequest(int CallerCustomerId, int FromAccountId, string ToBsb, string ToAccountNumber, decimal Amount, string? Description);
+public record PayRequest(int CallerCustomerId, int FromAccountId, string ToBsb, string ToAccountNumber, decimal Amount, string? Description, string? Reference);

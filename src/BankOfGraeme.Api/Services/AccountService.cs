@@ -180,7 +180,7 @@ public class AccountService(BankDbContext db)
     }
 
     public async Task<(Transaction from, Transaction to)> PayAsync(
-        int callerCustomerId, int fromAccountId, string toBsb, string toAccountNumber, decimal amount, string? description = null)
+        int callerCustomerId, int fromAccountId, string toBsb, string toAccountNumber, decimal amount, string? description = null, string? reference = null)
     {
         if (amount <= 0)
             throw new InvalidOperationException("Payment amount must be positive");
@@ -211,6 +211,9 @@ public class AccountService(BankDbContext db)
                 throw new InvalidOperationException("Insufficient funds");
 
             var desc = description ?? $"Payment to {toAccount.Customer.FirstName} {toAccount.Customer.LastName}";
+            var recipientRef = string.IsNullOrWhiteSpace(reference)
+                ? $"Payment from {fromAccount.Name}"
+                : reference;
 
             fromAccount.Balance -= amount;
             var fromTxn = new Transaction
@@ -227,7 +230,7 @@ public class AccountService(BankDbContext db)
             {
                 AccountId = toAccount.Id,
                 Amount = amount,
-                Description = $"Payment from {fromAccount.Name}",
+                Description = recipientRef,
                 TransactionType = TransactionType.Transfer,
                 BalanceAfter = toAccount.Balance
             };

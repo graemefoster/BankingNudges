@@ -16,6 +16,7 @@ export default function PayPage() {
   const [payee, setPayee] = useState<PayeeLookup | null>(null);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
+  const [reference, setReference] = useState('');
   const [loading, setLoading] = useState(true);
   const [lookingUp, setLookingUp] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -96,10 +97,12 @@ export default function PayPage() {
         accountNumber.trim(),
         amt,
         description || `Payment to ${payee.customerName}`,
+        reference || `Payment from ${sessionStorage.getItem('customerName') ?? 'Customer'}`,
       );
       setSuccess(`Paid ${formatCurrency(amt)} to ${payee.customerName}`);
       setAmount('');
       setDescription('');
+      setReference('');
       setPayee(null);
       setBsb('');
       setAccountNumber('');
@@ -224,16 +227,30 @@ export default function PayPage() {
           />
         </div>
 
-        {/* Description */}
+        {/* Description (your statement) */}
         <div>
           <label className="block text-sm text-text-secondary mb-1">
-            Description (optional)
+            Description <span className="text-xs text-text-secondary">(appears on your statement)</span>
           </label>
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="What's this for?"
+            placeholder="e.g. Rent March 2026"
+            className={inputClasses}
+          />
+        </div>
+
+        {/* Reference (recipient's statement) */}
+        <div>
+          <label className="block text-sm text-text-secondary mb-1">
+            Reference <span className="text-xs text-text-secondary">(appears on recipient's statement)</span>
+          </label>
+          <input
+            type="text"
+            value={reference}
+            onChange={(e) => setReference(e.target.value)}
+            placeholder="e.g. Invoice #1234"
             className={inputClasses}
           />
         </div>

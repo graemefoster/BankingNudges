@@ -75,10 +75,11 @@ export function pay(
   toAccountNumber: string,
   amount: number,
   description: string,
+  reference: string,
 ) {
   return fetchJson<void>(`${BASE}/payments`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ callerCustomerId: Number(callerCustomerId), fromAccountId: Number(fromAccountId), toBsb, toAccountNumber, amount, description }),
+    body: JSON.stringify({ callerCustomerId: Number(callerCustomerId), fromAccountId: Number(fromAccountId), toBsb, toAccountNumber, amount, description, reference }),
   });
 }
