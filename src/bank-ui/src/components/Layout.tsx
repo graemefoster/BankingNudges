@@ -10,17 +10,17 @@ export default function Layout() {
   const isLogin = location.pathname === '/';
 
   return (
-    <div className="min-h-screen bg-dark-bg flex flex-col">
+    <div className="min-h-screen bg-light-bg flex flex-col">
       {/* Header */}
-      <header className="bg-dark-card border-b border-white/10 px-4 py-3">
+      <header className="bg-brand-purple px-4 py-3 shadow-md">
         <div className="max-w-md mx-auto flex items-center justify-between">
-          <h1 className="text-lg font-bold text-brand-purple">
+          <h1 className="text-lg font-bold text-white">
             🏦 Bank of Graeme
           </h1>
           {!isLogin && (
             <NavLink
               to="/"
-              className="text-xs text-gray-400 hover:text-white transition-colors"
+              className="text-xs text-white/70 hover:text-white transition-colors"
             >
               Switch User
             </NavLink>
@@ -37,7 +37,7 @@ export default function Layout() {
 
       {/* Bottom nav */}
       {!isLogin && (
-        <nav className="fixed bottom-0 inset-x-0 bg-dark-card border-t border-white/10">
+        <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 shadow-lg">
           <div className="max-w-md mx-auto flex">
             {navItems.map((item) => (
               <NavLink
@@ -46,8 +46,8 @@ export default function Layout() {
                 className={({ isActive }) =>
                   `flex-1 flex flex-col items-center py-3 text-xs transition-colors ${
                     isActive
-                      ? 'text-brand-purple'
-                      : 'text-gray-400 hover:text-white'
+                      ? 'text-brand-purple font-semibold'
+                      : 'text-text-secondary hover:text-brand-purple'
                   }`
                 }
               >

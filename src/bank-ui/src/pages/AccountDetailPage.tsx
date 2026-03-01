@@ -69,7 +69,7 @@ export default function AccountDetailPage() {
     return (
       <div className="text-center py-16">
         <p className="text-brand-red mb-4">{error || 'Account not found'}</p>
-        <Link to="/dashboard" className="text-brand-blue hover:underline text-sm">
+        <Link to="/dashboard" className="text-brand-purple hover:underline text-sm font-medium">
           Back to Dashboard
         </Link>
       </div>
@@ -83,26 +83,26 @@ export default function AccountDetailPage() {
       {/* Back link */}
       <Link
         to="/dashboard"
-        className="inline-flex items-center text-sm text-brand-blue hover:text-white mb-4 transition-colors"
+        className="inline-flex items-center text-sm text-brand-purple hover:text-brand-purple/70 mb-4 transition-colors font-medium"
       >
         ← Back
       </Link>
 
       {/* Account card */}
-      <div className="bg-dark-card rounded-xl p-5 mb-6">
+      <div className="bg-light-card rounded-xl p-5 mb-6 shadow-sm">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-white">{account.name}</h2>
+          <h2 className="text-lg font-bold text-text-primary">{account.name}</h2>
           <span
             className={`text-xs font-medium px-2 py-0.5 rounded-full ${accountTypeBg[account.accountType]}`}
           >
             {accountTypeLabel[account.accountType]}
           </span>
         </div>
-        <p className="text-xs text-gray-400 mb-3">
+        <p className="text-xs text-text-secondary mb-3">
           BSB {account.bsb} · {account.accountNumber}
         </p>
         <div
-          className={`text-3xl font-bold ${isNegative ? 'text-brand-red' : 'text-brand-mint'}`}
+          className={`text-3xl font-bold ${isNegative ? 'text-brand-red' : 'text-emerald-600'}`}
         >
           {formatCurrency(account.balance)}
         </div>
@@ -115,7 +115,7 @@ export default function AccountDetailPage() {
       )}
 
       {/* Transactions */}
-      <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
+      <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-3">
         Transactions
       </h3>
       <TransactionList

@@ -12,7 +12,7 @@ interface Props {
 }
 
 function txColor(t: Transaction): string {
-  return t.amount >= 0 ? 'text-brand-mint' : 'text-brand-red';
+  return t.amount >= 0 ? 'text-emerald-600' : 'text-brand-red';
 }
 
 function txSign(t: Transaction): string {
@@ -26,7 +26,7 @@ export default function TransactionList({
   hasMore,
 }: Props) {
   if (!loading && transactions.length === 0) {
-    return <p className="text-gray-400 text-center py-8">No transactions yet</p>;
+    return <p className="text-text-secondary text-center py-8">No transactions yet</p>;
   }
 
   return (
@@ -34,13 +34,13 @@ export default function TransactionList({
       {transactions.map((tx) => (
         <div
           key={tx.id}
-          className="bg-dark-card rounded-lg px-4 py-3 flex items-center justify-between"
+          className="bg-light-card rounded-lg px-4 py-3 flex items-center justify-between shadow-sm"
         >
           <div className="flex-1 min-w-0 mr-3">
-            <p className="text-sm font-medium text-white truncate">
+            <p className="text-sm font-medium text-text-primary truncate">
               {tx.description}
             </p>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-text-secondary mt-0.5">
               {transactionTypeLabel[tx.transactionType]} ·{' '}
               {new Date(tx.createdAt).toLocaleDateString('en-AU', {
                 day: 'numeric',
@@ -56,7 +56,7 @@ export default function TransactionList({
               {txSign(tx)}
               {formatCurrency(Math.abs(tx.amount))}
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-text-secondary">
               Bal: {formatCurrency(tx.balanceAfter)}
             </p>
           </div>
@@ -72,7 +72,7 @@ export default function TransactionList({
       {!loading && hasMore && onLoadMore && (
         <button
           onClick={onLoadMore}
-          className="w-full py-2 text-sm text-brand-blue hover:text-white transition-colors"
+          className="w-full py-2 text-sm text-brand-purple hover:text-brand-purple/70 transition-colors font-medium"
         >
           Load more
         </button>

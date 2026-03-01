@@ -65,11 +65,8 @@ export default function TransferPage() {
       setSuccess(`Transferred ${formatCurrency(amt)} successfully`);
       setAmount('');
       setDescription('');
-      // Refresh balances
-      if (customerId) {
-        const accs = await getCustomerAccounts(customerId);
-        setAccounts(accs);
-      }
+      // Navigate to dashboard after brief delay
+      setTimeout(() => navigate('/dashboard'), 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Transfer failed');
     } finally {
@@ -88,7 +85,7 @@ export default function TransferPage() {
   if (accounts.length < 2) {
     return (
       <div className="text-center py-16">
-        <p className="text-gray-400">You need at least 2 accounts to transfer.</p>
+        <p className="text-text-secondary">You need at least 2 accounts to transfer.</p>
       </div>
     );
   }
@@ -98,7 +95,7 @@ export default function TransferPage() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-white mb-6">Transfer Funds</h2>
+      <h2 className="text-xl font-bold text-text-primary mb-6">Transfer Funds</h2>
 
       {error && (
         <div className="bg-brand-red/10 border border-brand-red/30 text-brand-red rounded-lg px-4 py-3 mb-4 text-sm">
@@ -106,7 +103,7 @@ export default function TransferPage() {
         </div>
       )}
       {success && (
-        <div className="bg-brand-mint/10 border border-brand-mint/30 text-brand-mint rounded-lg px-4 py-3 mb-4 text-sm">
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg px-4 py-3 mb-4 text-sm">
           {success}
         </div>
       )}
@@ -114,11 +111,11 @@ export default function TransferPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* From */}
         <div>
-          <label className="block text-sm text-gray-400 mb-1">From</label>
+          <label className="block text-sm text-text-secondary mb-1">From</label>
           <select
             value={fromId}
             onChange={(e) => setFromId(e.target.value)}
-            className="w-full bg-dark-card text-white rounded-lg px-4 py-3 border border-white/10 focus:border-brand-purple focus:outline-none"
+            className="w-full bg-light-card text-text-primary rounded-lg px-4 py-3 border border-gray-200 focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 focus:outline-none shadow-sm"
           >
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
@@ -130,11 +127,11 @@ export default function TransferPage() {
 
         {/* To */}
         <div>
-          <label className="block text-sm text-gray-400 mb-1">To</label>
+          <label className="block text-sm text-text-secondary mb-1">To</label>
           <select
             value={toId}
             onChange={(e) => setToId(e.target.value)}
-            className="w-full bg-dark-card text-white rounded-lg px-4 py-3 border border-white/10 focus:border-brand-purple focus:outline-none"
+            className="w-full bg-light-card text-text-primary rounded-lg px-4 py-3 border border-gray-200 focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 focus:outline-none shadow-sm"
           >
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
@@ -146,7 +143,7 @@ export default function TransferPage() {
 
         {/* Amount */}
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Amount (AUD)</label>
+          <label className="block text-sm text-text-secondary mb-1">Amount (AUD)</label>
           <input
             type="number"
             step="0.01"
@@ -155,13 +152,13 @@ export default function TransferPage() {
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
             required
-            className="w-full bg-dark-card text-white rounded-lg px-4 py-3 border border-white/10 focus:border-brand-purple focus:outline-none"
+            className="w-full bg-light-card text-text-primary rounded-lg px-4 py-3 border border-gray-200 focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 focus:outline-none shadow-sm"
           />
         </div>
 
         {/* Description */}
         <div>
-          <label className="block text-sm text-gray-400 mb-1">
+          <label className="block text-sm text-text-secondary mb-1">
             Description (optional)
           </label>
           <input
@@ -169,14 +166,14 @@ export default function TransferPage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="What's this for?"
-            className="w-full bg-dark-card text-white rounded-lg px-4 py-3 border border-white/10 focus:border-brand-purple focus:outline-none"
+            className="w-full bg-light-card text-text-primary rounded-lg px-4 py-3 border border-gray-200 focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 focus:outline-none shadow-sm"
           />
         </div>
 
         <button
           type="submit"
           disabled={submitting}
-          className="w-full bg-brand-purple hover:bg-brand-purple/80 disabled:opacity-50 text-white font-semibold rounded-lg py-3 transition-colors"
+          className="w-full bg-brand-purple hover:bg-brand-purple/80 disabled:opacity-50 text-white font-semibold rounded-lg py-3 transition-colors shadow-md"
         >
           {submitting ? 'Transferring...' : 'Transfer'}
         </button>

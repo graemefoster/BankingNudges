@@ -58,10 +58,10 @@ export const accountTypeColor: Record<AccountType, string> = {
 };
 
 export const accountTypeBg: Record<AccountType, string> = {
-  [AccountType.Transaction]: 'bg-brand-blue/20 text-brand-blue',
-  [AccountType.Savings]: 'bg-brand-mint/20 text-brand-mint',
-  [AccountType.HomeLoan]: 'bg-brand-red/20 text-brand-red',
-  [AccountType.Offset]: 'bg-brand-purple/20 text-brand-purple',
+  [AccountType.Transaction]: 'bg-brand-blue/15 text-brand-blue',
+  [AccountType.Savings]: 'bg-brand-mint/40 text-emerald-700',
+  [AccountType.HomeLoan]: 'bg-brand-red/15 text-brand-red',
+  [AccountType.Offset]: 'bg-brand-purple/15 text-brand-purple',
 };
 
 export const transactionTypeLabel: Record<TransactionType, string> = {

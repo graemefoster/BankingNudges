@@ -28,7 +28,7 @@ export default function LoginPage() {
       <h2 className="text-2xl font-bold text-brand-purple mb-1">
         Bank of Graeme
       </h2>
-      <p className="text-gray-400 text-sm mb-8">Select your account to continue</p>
+      <p className="text-text-secondary text-sm mb-8">Select your account to continue</p>
 
       {error && (
         <div className="w-full bg-brand-red/10 border border-brand-red/30 text-brand-red rounded-lg px-4 py-3 mb-4 text-sm">
@@ -46,15 +46,15 @@ export default function LoginPage() {
             <button
               key={c.id}
               onClick={() => selectCustomer(c)}
-              className="w-full bg-dark-card hover:bg-dark-card-hover rounded-xl p-4 text-left transition-colors"
+              className="w-full bg-light-card hover:bg-light-card-hover rounded-xl p-4 text-left transition-colors shadow-sm"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-white">{c.fullName}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{c.email}</p>
+                  <p className="font-semibold text-text-primary">{c.fullName}</p>
+                  <p className="text-xs text-text-secondary mt-0.5">{c.email}</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs bg-brand-purple/20 text-brand-purple px-2 py-1 rounded-full">
+                  <span className="text-xs bg-brand-purple/15 text-brand-purple px-2 py-1 rounded-full font-medium">
                     {c.accountCount} account{c.accountCount !== 1 ? 's' : ''}
                   </span>
                 </div>

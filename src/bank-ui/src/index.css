@@ -6,13 +6,15 @@
   --color-brand-yellow: #FFE548;
   --color-brand-blue: #36A6E8;
   --color-brand-red: #FF5C3B;
-  --color-dark-bg: #111827;
-  --color-dark-card: #1F2937;
-  --color-dark-card-hover: #374151;
+  --color-light-bg: #F9FAFB;
+  --color-light-card: #FFFFFF;
+  --color-light-card-hover: #F3F4F6;
+  --color-text-primary: #1F2937;
+  --color-text-secondary: #6B7280;
 }
 
 body {
-  @apply bg-dark-bg text-white antialiased;
+  @apply bg-light-bg text-text-primary antialiased;
   margin: 0;
   min-height: 100vh;
   font-family: system-ui, -apple-system, sans-serif;
