@@ -36,6 +36,7 @@ docker compose -f "$SCRIPT_DIR/docker-compose.yml" up -d --wait
 # 2. Fresh database if requested
 if [ "$FRESH" = true ]; then
     echo "🗑️  Dropping database for fresh seed..."
+    docker exec bankofgraeme-db psql -U bankadmin -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'bankofgraeme' AND pid <> pg_backend_pid();" postgres > /dev/null 2>&1
     docker exec bankofgraeme-db psql -U bankadmin -c "DROP DATABASE IF EXISTS bankofgraeme;" postgres
     docker exec bankofgraeme-db psql -U bankadmin -c "CREATE DATABASE bankofgraeme;" postgres
     echo "✅ Fresh database created — migrations and seed will run on API startup."

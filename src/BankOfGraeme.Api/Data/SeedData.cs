@@ -35,7 +35,6 @@ public static class SeedData
         var sarahSav = CreateAccount(sarah, AccountType.Savings, "062-000", "10234568", "Goal Saver", 15000.00m);
         var sarahLoan = CreateAccount(sarah, AccountType.HomeLoan, "062-000", "10234569", "Home Loan", -450000.00m, 450000m, 6.2m, 360);
         var sarahOffset = CreateAccount(sarah, AccountType.Offset, "062-000", "10234570", "Offset Account", 35000.00m);
-        sarahOffset.HomeLoanAccountId = sarahLoan.Id;
 
         // James's accounts
         var jamesTxn = CreateAccount(james, AccountType.Transaction, "062-000", "20345678", "Everyday Spendings", 890.00m);
@@ -45,7 +44,6 @@ public static class SeedData
         var emmaTxn = CreateAccount(emma, AccountType.Transaction, "062-000", "30456789", "Daily Account", 5100.00m);
         var emmaLoan = CreateAccount(emma, AccountType.HomeLoan, "062-000", "30456790", "Home Loan", -320000.00m, 320000m, 5.9m, 360);
         var emmaOffset = CreateAccount(emma, AccountType.Offset, "062-000", "30456791", "Offset Savings", 12000.00m);
-        emmaOffset.HomeLoanAccountId = emmaLoan.Id;
 
         db.Accounts.AddRange(sarahTxn, sarahSav, sarahLoan, sarahOffset, jamesTxn, jamesSav, emmaTxn, emmaLoan, emmaOffset);
         db.SaveChanges();
