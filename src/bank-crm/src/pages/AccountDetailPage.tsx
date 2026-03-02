@@ -119,11 +119,19 @@ export default function AccountDetailPage() {
         <table className="text-xs bg-white">
           <tbody>
             <tr>
-              <td className="px-2 py-1 bg-gray-50 font-bold w-32">Balance</td>
+              <td className="px-2 py-1 bg-gray-50 font-bold w-32">Ledger Balance</td>
               <td className={`px-2 py-1 font-mono font-bold ${account.balance < 0 ? 'text-red-700' : ''}`}>
                 {formatCurrency(account.balance)}
               </td>
             </tr>
+            {account.availableBalance !== undefined && account.availableBalance !== account.balance && (
+              <tr>
+                <td className="px-2 py-1 bg-gray-50 font-bold">Available</td>
+                <td className={`px-2 py-1 font-mono ${(account.availableBalance ?? 0) < 0 ? 'text-red-700' : ''}`}>
+                  {formatCurrency(account.availableBalance ?? 0)}
+                </td>
+              </tr>
+            )}
             <tr>
               <td className="px-2 py-1 bg-gray-50 font-bold">BSB</td>
               <td className="px-2 py-1 font-mono">{account.bsb}</td>
@@ -265,7 +273,7 @@ export default function AccountDetailPage() {
               <th className="px-2 py-1 font-normal">Description</th>
               <th className="px-2 py-1 font-normal">Type</th>
               <th className="px-2 py-1 font-normal text-right">Amount</th>
-              <th className="px-2 py-1 font-normal text-right">Balance</th>
+              <th className="px-2 py-1 font-normal">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -275,14 +283,20 @@ export default function AccountDetailPage() {
               <tr><td colSpan={5} className="px-2 py-4 text-center text-text-secondary">No transactions found.</td></tr>
             ) : (
               transactions.map((t, i) => (
-                <tr key={t.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                <tr key={t.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${t.status === 'Pending' ? 'opacity-70' : ''}`}>
                   <td className="px-2 py-1 text-text-secondary whitespace-nowrap">{formatDateTime(t.createdAt)}</td>
                   <td className="px-2 py-1">{t.description}</td>
                   <td className="px-2 py-1 text-text-secondary">{transactionTypeLabel[t.transactionType]}</td>
                   <td className={`px-2 py-1 text-right font-mono ${t.amount >= 0 ? 'text-crm-secondary' : 'text-red-700'}`}>
                     {t.amount >= 0 ? '+' : ''}{formatCurrency(t.amount)}
                   </td>
-                  <td className="px-2 py-1 text-right font-mono text-text-secondary">{formatCurrency(t.balanceAfter)}</td>
+                  <td className="px-2 py-1">
+                    {t.status === 'Pending' ? (
+                      <span className="inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-medium">Pending</span>
+                    ) : (
+                      <span className="inline-block px-1.5 py-0.5 rounded bg-green-100 text-green-800 text-[10px] font-medium">Settled</span>
+                    )}
+                  </td>
                 </tr>
               ))
             )}

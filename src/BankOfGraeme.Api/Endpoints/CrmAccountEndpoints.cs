@@ -15,14 +15,26 @@ public static class CrmAccountEndpoints
             .WithTags("CRM Accounts")
             .AddEndpointFilter(StaffAuthFilter);
 
-        group.MapGet("/{id:int}", async (int id, BankDbContext db) =>
+        group.MapGet("/{id:int}", async (int id, BankDbContext db, AccountService svc) =>
         {
             var account = await db.Accounts
                 .Include(a => a.Customer)
                 .Include(a => a.OffsetAccounts)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
-            return account is null ? Results.NotFound() : Results.Ok(account);
+            if (account is null) return Results.NotFound();
+            var availableBalance = await svc.GetAvailableBalanceAsync(id);
+            return Results.Ok(new
+            {
+                account.Id, account.CustomerId, account.AccountType, account.Bsb,
+                account.AccountNumber, account.Name, account.Balance,
+                AvailableBalance = availableBalance,
+                account.IsActive, account.CreatedAt,
+                account.LoanAmount, account.InterestRate, account.LoanTermMonths,
+                account.HomeLoanAccountId,
+                Customer = new { account.Customer.Id, account.Customer.FirstName, account.Customer.LastName },
+                OffsetAccounts = account.OffsetAccounts.Select(o => new { o.Id, o.Name, o.Balance })
+            });
         });
 
         group.MapPost("/{id:int}/adjust", async (int id, AdjustBalanceRequest req, BankDbContext db, HttpContext http, StaffAuthService auth) =>
@@ -45,7 +57,6 @@ public static class CrmAccountEndpoints
                     Amount = req.Amount,
                     Description = $"Manual adjustment by {staff.DisplayName}: {req.Reason}",
                     TransactionType = TransactionType.Adjustment,
-                    BalanceAfter = account.Balance
                 };
 
                 db.Transactions.Add(txn);
@@ -71,6 +82,10 @@ public static class CrmAccountEndpoints
 
             if (!account.IsActive)
                 return Results.BadRequest(new { error = "Account is already closed" });
+
+            var hasPending = await db.Transactions.AnyAsync(t => t.AccountId == id && t.Status == TransactionStatus.Pending);
+            if (hasPending && !(req?.Force ?? false))
+                return Results.BadRequest(new { error = "Account has pending transactions. Use force=true to close anyway." });
 
             if (account.Balance != 0 && !(req?.Force ?? false))
                 return Results.BadRequest(new { error = "Account has a non-zero balance. Use force=true to close anyway." });

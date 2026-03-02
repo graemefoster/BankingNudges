@@ -40,16 +40,25 @@ export interface Account {
   accountNumber: string;
   name: string;
   balance: number;
+  availableBalance?: number;
   isActive: boolean;
   createdAt: string;
 }
+
+export const TransactionStatus = {
+  Pending: 'Pending',
+  Settled: 'Settled',
+  Reversed: 'Reversed',
+} as const;
+export type TransactionStatus = (typeof TransactionStatus)[keyof typeof TransactionStatus];
 
 export interface Transaction {
   id: number;
   amount: number;
   description: string;
   transactionType: TransactionType;
-  balanceAfter: number;
+  status: TransactionStatus;
+  settledAt: string | null;
   createdAt: string;
 }
 

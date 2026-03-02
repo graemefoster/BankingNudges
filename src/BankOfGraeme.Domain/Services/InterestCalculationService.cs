@@ -198,7 +198,6 @@ public class InterestCalculationService(BankDbContext db, ILogger<InterestCalcul
                 Amount = amount,
                 Description = description,
                 TransactionType = TransactionType.Interest,
-                BalanceAfter = account.Balance
             };
 
             db.Transactions.Add(txn);

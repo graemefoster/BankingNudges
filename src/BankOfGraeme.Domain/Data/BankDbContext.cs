@@ -21,6 +21,7 @@ public class BankDbContext : DbContext
     public DbSet<StaffUser> StaffUsers => Set<StaffUser>();
     public DbSet<CustomerNote> CustomerNotes => Set<CustomerNote>();
     public DbSet<InterestAccrual> InterestAccruals => Set<InterestAccrual>();
+    public DbSet<AccountBalanceSnapshot> AccountBalanceSnapshots => Set<AccountBalanceSnapshot>();
     public DbSet<SystemSettings> SystemSettings => Set<SystemSettings>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
@@ -89,14 +90,15 @@ public class BankDbContext : DbContext
         {
             e.HasKey(t => t.Id);
             e.Property(t => t.Amount).HasPrecision(18, 2);
-            e.Property(t => t.BalanceAfter).HasPrecision(18, 2);
             e.Property(t => t.Description).HasMaxLength(500);
+            e.Property(t => t.Status).HasConversion<string>().HasMaxLength(20);
 
             e.HasOne(t => t.Account)
                 .WithMany(a => a.Transactions)
                 .HasForeignKey(t => t.AccountId);
 
             e.HasIndex(t => t.CreatedAt);
+            e.HasIndex(t => t.Status);
         });
 
         modelBuilder.Entity<StaffUser>(e =>
@@ -147,6 +149,19 @@ public class BankDbContext : DbContext
             e.Property(s => s.Key).HasMaxLength(100);
             e.Property(s => s.Value).HasMaxLength(500);
             e.HasIndex(s => s.Key).IsUnique();
+        });
+
+        modelBuilder.Entity<AccountBalanceSnapshot>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.LedgerBalance).HasPrecision(18, 2);
+            e.Property(s => s.AvailableBalance).HasPrecision(18, 2);
+
+            e.HasOne(s => s.Account)
+                .WithMany()
+                .HasForeignKey(s => s.AccountId);
+
+            e.HasIndex(s => new { s.AccountId, s.SnapshotDate }).IsUnique();
         });
     }
 }

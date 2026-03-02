@@ -106,6 +106,11 @@ export default function AccountDetailPage() {
         >
           {formatCurrency(account.balance)}
         </div>
+        {account.availableBalance !== undefined && account.availableBalance !== account.balance && (
+          <p className="text-sm text-text-secondary mt-1">
+            Available: {formatCurrency(account.availableBalance)}
+          </p>
+        )}
       </div>
 
       {error && (

@@ -34,7 +34,7 @@ export default function TransactionList({
       {transactions.map((tx) => (
         <div
           key={tx.id}
-          className="bg-dark-elevated rounded-lg px-4 py-3 flex items-center justify-between border border-border"
+          className={`bg-dark-elevated rounded-lg px-4 py-3 flex items-center justify-between border border-border ${tx.status === 'Pending' ? 'opacity-70 border-accent-amber/30' : ''}`}
         >
           <div className="flex-1 min-w-0 mr-3">
             <p className="text-sm font-medium text-text-primary truncate">
@@ -57,7 +57,11 @@ export default function TransactionList({
               {formatCurrency(Math.abs(tx.amount))}
             </p>
             <p className="text-xs text-text-muted">
-              Bal: {formatCurrency(tx.balanceAfter)}
+              {tx.status === 'Pending' ? (
+                <span className="text-accent-amber">Pending</span>
+              ) : (
+                transactionTypeLabel[tx.transactionType]
+              )}
             </p>
           </div>
         </div>

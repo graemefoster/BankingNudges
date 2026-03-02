@@ -6,7 +6,7 @@ namespace BankOfGraeme.Api.Data;
 
 public static class SeedData
 {
-    private const int CustomerCount = 10_000;
+    private const int CustomerCount = 1_000;
     private const int RandomSeed = 42;
     private const string Bsb = "062-000";
 
@@ -280,8 +280,11 @@ public static class SeedData
         if (txnBuffer.Count > 0)
             FlushTransactions(db, txnBuffer);
 
-        // Phase 5: Update account balances to match final transaction BalanceAfter
+        // Phase 5: Update account balances from sum of settled transactions
         UpdateAccountBalances(db);
+
+        // Phase 6: Mark some recent withdrawals as pending (last 3 days)
+        MarkRecentWithdrawalsAsPending(db, now);
     }
 
     private static void FlushTransactions(BankDbContext db, List<Transaction> buffer)
@@ -294,17 +297,51 @@ public static class SeedData
 
     private static void UpdateAccountBalances(BankDbContext db)
     {
-        // For each account, set Balance = BalanceAfter of most recent transaction
-        // Use raw SQL for efficiency
+        // Set Balance = sum of all settled transaction amounts per account
         db.Database.ExecuteSqlRaw("""
             UPDATE "Accounts" a
-            SET "Balance" = t."BalanceAfter"
+            SET "Balance" = COALESCE(t.total, 0)
             FROM (
-                SELECT DISTINCT ON ("AccountId") "AccountId", "BalanceAfter"
+                SELECT "AccountId", SUM("Amount") as total
                 FROM "Transactions"
-                ORDER BY "AccountId", "CreatedAt" DESC, "Id" DESC
+                WHERE "Status" = 'Settled'
+                GROUP BY "AccountId"
             ) t
             WHERE a."Id" = t."AccountId"
+        """);
+    }
+
+    private static void MarkRecentWithdrawalsAsPending(BankDbContext db, DateTime now)
+    {
+        // Mark ~20% of withdrawals from the last 3 days as pending (unsettled card purchases)
+        var cutoff = now.AddDays(-3);
+        db.Database.ExecuteSqlRaw("""
+            WITH ranked AS (
+                SELECT "Id",
+                       ROW_NUMBER() OVER (PARTITION BY "AccountId" ORDER BY "CreatedAt" DESC) as rn
+                FROM "Transactions"
+                WHERE "TransactionType" = 1
+                  AND "CreatedAt" >= {0}
+                  AND "Status" = 'Settled'
+                  AND "Amount" < 0
+            )
+            UPDATE "Transactions"
+            SET "Status" = 'Pending', "SettledAt" = NULL
+            FROM ranked
+            WHERE "Transactions"."Id" = ranked."Id" AND ranked.rn <= 2
+        """, cutoff);
+
+        // Also subtract pending amounts from account balances since they shouldn't be settled
+        db.Database.ExecuteSqlRaw("""
+            UPDATE "Accounts" a
+            SET "Balance" = "Balance" - COALESCE(p.pending_total, 0)
+            FROM (
+                SELECT "AccountId", SUM("Amount") as pending_total
+                FROM "Transactions"
+                WHERE "Status" = 'Pending'
+                GROUP BY "AccountId"
+            ) p
+            WHERE a."Id" = p."AccountId"
         """);
     }
 
@@ -441,7 +478,7 @@ public static class SeedData
         var date = meta.CreatedAt;
 
         // Opening deposit
-        txns.Add(MakeTxn(meta.AccountId, balance, "Opening Deposit", TransactionType.Deposit, balance, date));
+        txns.Add(MakeTxn(meta.AccountId, balance, "Opening Deposit", TransactionType.Deposit, date));
 
         // Determine salary amount and frequency (fortnightly)
         var salary = RoundToNearest(rng.Next(1800, 6501), 50);
@@ -467,7 +504,7 @@ public static class SeedData
             {
                 balance += salary;
                 txns.Add(MakeTxn(meta.AccountId, salary, "Salary Credit",
-                    TransactionType.Deposit, balance, nextPayDay));
+                    TransactionType.Deposit, nextPayDay));
                 nextPayDay = nextPayDay.AddDays(14);
             }
 
@@ -478,7 +515,7 @@ public static class SeedData
                 {
                     balance -= amt;
                     txns.Add(MakeTxn(meta.AccountId, -amt, desc,
-                        TransactionType.Withdrawal, balance, nextSubDay.AddMinutes(rng.Next(0, 1440))));
+                        TransactionType.Withdrawal, nextSubDay.AddMinutes(rng.Next(0, 1440))));
                 }
                 nextSubDay = nextSubDay.AddMonths(1);
             }
@@ -498,7 +535,7 @@ public static class SeedData
                 balance -= amount;
                 var txnTime = currentDate.AddHours(rng.Next(7, 22)).AddMinutes(rng.Next(0, 60));
                 txns.Add(MakeTxn(meta.AccountId, -amount, desc,
-                    TransactionType.Withdrawal, balance, txnTime));
+                    TransactionType.Withdrawal, txnTime));
             }
 
             // ATM withdrawal (~once every 2 weeks)
@@ -507,7 +544,7 @@ public static class SeedData
                 var atmAmount = (decimal)(rng.Next(1, 11) * 50); // $50-$500
                 balance -= atmAmount;
                 txns.Add(MakeTxn(meta.AccountId, -atmAmount, "ATM Withdrawal",
-                    TransactionType.Withdrawal, balance,
+                    TransactionType.Withdrawal,
                     currentDate.AddHours(rng.Next(8, 21))));
             }
 
@@ -517,7 +554,7 @@ public static class SeedData
                 var transfer = (decimal)(rng.Next(2, 11) * 100); // $200-$1000
                 balance += transfer;
                 txns.Add(MakeTxn(meta.AccountId, transfer, "Transfer from Savings",
-                    TransactionType.Transfer, balance,
+                    TransactionType.Transfer,
                     currentDate.AddHours(rng.Next(8, 18))));
             }
 
@@ -533,7 +570,7 @@ public static class SeedData
         var balance = (decimal)(rng.Next(2000, 20001));
         var date = meta.CreatedAt;
 
-        txns.Add(MakeTxn(meta.AccountId, balance, "Opening Deposit", TransactionType.Deposit, balance, date));
+        txns.Add(MakeTxn(meta.AccountId, balance, "Opening Deposit", TransactionType.Deposit, date));
 
         var currentDate = date.AddDays(1);
         var nextInterestDate = new DateTime(date.Year, date.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1); // First of next month
@@ -549,7 +586,7 @@ public static class SeedData
                 {
                     balance += interest;
                     txns.Add(MakeTxn(meta.AccountId, interest, "Interest Earned",
-                        TransactionType.Interest, balance, nextInterestDate.AddHours(1)));
+                        TransactionType.Interest, nextInterestDate.AddHours(1)));
                 }
                 nextInterestDate = nextInterestDate.AddMonths(1);
             }
@@ -560,7 +597,7 @@ public static class SeedData
                 var amount = (decimal)(rng.Next(2, 21) * 100); // $200-$2000
                 balance += amount;
                 txns.Add(MakeTxn(meta.AccountId, amount, "Transfer In",
-                    TransactionType.Transfer, balance,
+                    TransactionType.Transfer,
                     currentDate.AddHours(rng.Next(8, 18))));
             }
 
@@ -570,7 +607,7 @@ public static class SeedData
                 var amount = (decimal)(rng.Next(1, 11) * 100); // $100-$1000
                 balance -= amount;
                 txns.Add(MakeTxn(meta.AccountId, -amount, "Transfer Out",
-                    TransactionType.Transfer, balance,
+                    TransactionType.Transfer,
                     currentDate.AddHours(rng.Next(8, 18))));
             }
 
@@ -588,7 +625,7 @@ public static class SeedData
         var balance = -loanAmount; // Loans are negative
 
         txns.Add(MakeTxn(meta.AccountId, -loanAmount, "Loan Drawdown",
-            TransactionType.Deposit, balance, meta.CreatedAt));
+            TransactionType.Deposit, meta.CreatedAt));
 
         // Calculate monthly repayment (P&I)
         var monthlyRate = rate / 100m / 12m;
@@ -609,7 +646,7 @@ public static class SeedData
                 var interest = Math.Round(Math.Abs(balance) * rate / 100m / 12m, 2);
                 balance -= interest;
                 txns.Add(MakeTxn(meta.AccountId, -interest, "Interest Charged",
-                    TransactionType.Interest, balance, nextInterestDate.AddHours(1)));
+                    TransactionType.Interest, nextInterestDate.AddHours(1)));
 
                 // Monthly repayment (2 days after interest)
                 var repayDate = nextInterestDate.AddDays(2);
@@ -617,7 +654,7 @@ public static class SeedData
                 {
                     balance += monthlyRepayment;
                     txns.Add(MakeTxn(meta.AccountId, monthlyRepayment, "Monthly Repayment",
-                        TransactionType.Repayment, balance, repayDate));
+                        TransactionType.Repayment, repayDate));
 
                     // Occasional extra repayment (~10% of months)
                     if (rng.Next(10) == 0)
@@ -625,7 +662,7 @@ public static class SeedData
                         var extra = (decimal)(rng.Next(5, 31) * 100); // $500-$3000
                         balance += extra;
                         txns.Add(MakeTxn(meta.AccountId, extra, "Extra Repayment",
-                            TransactionType.Repayment, balance, repayDate.AddDays(rng.Next(1, 10))));
+                            TransactionType.Repayment, repayDate.AddDays(rng.Next(1, 10))));
                     }
                 }
 
@@ -644,7 +681,7 @@ public static class SeedData
         var balance = (decimal)(rng.Next(5000, 50001));
         var date = meta.CreatedAt;
 
-        txns.Add(MakeTxn(meta.AccountId, balance, "Opening Deposit", TransactionType.Deposit, balance, date));
+        txns.Add(MakeTxn(meta.AccountId, balance, "Opening Deposit", TransactionType.Deposit, date));
 
         var salary = RoundToNearest(rng.Next(2500, 8001), 50);
         var nextPayDay = date.AddDays(rng.Next(1, 15));
@@ -657,7 +694,7 @@ public static class SeedData
             {
                 balance += salary;
                 txns.Add(MakeTxn(meta.AccountId, salary, "Salary Credit",
-                    TransactionType.Deposit, balance, nextPayDay));
+                    TransactionType.Deposit, nextPayDay));
                 nextPayDay = nextPayDay.AddDays(14);
             }
 
@@ -668,7 +705,7 @@ public static class SeedData
                 var amount = RoundTo(RandomDecimal(rng, bill.Min, bill.Max), 0.01m);
                 balance -= amount;
                 txns.Add(MakeTxn(meta.AccountId, -amount, bill.Desc,
-                    TransactionType.Withdrawal, balance,
+                    TransactionType.Withdrawal,
                     currentDate.AddHours(rng.Next(8, 18))));
             }
 
@@ -678,7 +715,7 @@ public static class SeedData
                 var amount = (decimal)(rng.Next(2, 16) * 100); // $200-$1500
                 balance -= amount;
                 txns.Add(MakeTxn(meta.AccountId, -amount, "Transfer Out",
-                    TransactionType.Transfer, balance,
+                    TransactionType.Transfer,
                     currentDate.AddHours(rng.Next(8, 18))));
             }
 
@@ -688,7 +725,7 @@ public static class SeedData
                 var amount = (decimal)(rng.Next(3, 21) * 100); // $300-$2000
                 balance += amount;
                 txns.Add(MakeTxn(meta.AccountId, amount, "Transfer In",
-                    TransactionType.Transfer, balance,
+                    TransactionType.Transfer,
                     currentDate.AddHours(rng.Next(8, 18))));
             }
 
@@ -720,7 +757,7 @@ public static class SeedData
     }
 
     private static Transaction MakeTxn(int accountId, decimal amount, string description,
-        TransactionType type, decimal balanceAfter, DateTime createdAt)
+        TransactionType type, DateTime createdAt)
     {
         return new Transaction
         {
@@ -728,7 +765,8 @@ public static class SeedData
             Amount = amount,
             Description = description,
             TransactionType = type,
-            BalanceAfter = Math.Round(balanceAfter, 2),
+            Status = TransactionStatus.Settled,
+            SettledAt = createdAt,
             CreatedAt = createdAt
         };
     }
