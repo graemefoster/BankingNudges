@@ -1,5 +1,5 @@
 using BankOfGraeme.Api.Data;
-using BankOfGraeme.Functions.Services;
+using BankOfGraeme.Api.Services;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

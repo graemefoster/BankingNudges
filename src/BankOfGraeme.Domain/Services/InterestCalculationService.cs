@@ -3,7 +3,7 @@ using BankOfGraeme.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace BankOfGraeme.Functions.Services;
+namespace BankOfGraeme.Api.Services;
 
 public class InterestCalculationService(BankDbContext db, ILogger<InterestCalculationService> logger)
 {
