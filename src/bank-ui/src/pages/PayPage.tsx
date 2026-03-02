@@ -117,7 +117,7 @@ export default function PayPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-16">
-        <div className="w-8 h-8 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-accent-teal border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -134,19 +134,19 @@ export default function PayPage() {
     `${a.name} (${accountTypeLabel[a.accountType]}) — ${formatCurrency(a.balance)}`;
 
   const inputClasses =
-    'w-full bg-light-card text-text-primary rounded-lg px-4 py-3 border border-gray-200 focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 focus:outline-none shadow-sm';
+    'w-full bg-dark-elevated text-text-primary rounded-lg px-4 py-3 border border-border focus:border-accent-teal focus:ring-2 focus:ring-border-focus focus:outline-none';
 
   return (
     <div>
       <h2 className="text-xl font-bold text-text-primary mb-6">Pay Someone</h2>
 
       {error && (
-        <div className="bg-brand-red/10 border border-brand-red/30 text-brand-red rounded-lg px-4 py-3 mb-4 text-sm">
+        <div className="bg-accent-coral/10 border border-accent-coral/30 text-accent-coral rounded-lg px-4 py-3 mb-4 text-sm">
           {error}
         </div>
       )}
       {success && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg px-4 py-3 mb-4 text-sm">
+        <div className="bg-accent-teal/10 border border-accent-teal/30 text-accent-teal rounded-lg px-4 py-3 mb-4 text-sm">
           {success}
         </div>
       )}
@@ -169,7 +169,7 @@ export default function PayPage() {
         </div>
 
         {/* Recipient lookup */}
-        <div className="bg-light-card rounded-xl p-4 border border-gray-200 shadow-sm space-y-3">
+        <div className="bg-dark-surface rounded-xl p-4 border border-border space-y-3">
           <p className="text-sm font-semibold text-text-primary">Recipient</p>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -197,15 +197,15 @@ export default function PayPage() {
             type="button"
             onClick={handleLookup}
             disabled={lookingUp}
-            className="w-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-text-primary font-medium rounded-lg py-2 text-sm transition-colors"
+            className="w-full bg-dark-elevated hover:bg-dark-elevated/80 disabled:opacity-50 text-text-primary font-medium rounded-lg py-2 text-sm transition-colors border border-border"
           >
             {lookingUp ? 'Looking up...' : 'Look Up Recipient'}
           </button>
 
           {payee && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
-              <p className="text-sm font-semibold text-emerald-800">{payee.customerName}</p>
-              <p className="text-xs text-emerald-600">
+            <div className="bg-accent-teal/10 border border-accent-teal/30 rounded-lg px-4 py-3">
+              <p className="text-sm font-semibold text-accent-teal">{payee.customerName}</p>
+              <p className="text-xs text-accent-teal/70">
                 {payee.name} · {payee.accountTypeName}
               </p>
             </div>
@@ -230,7 +230,7 @@ export default function PayPage() {
         {/* Description (your statement) */}
         <div>
           <label className="block text-sm text-text-secondary mb-1">
-            Description <span className="text-xs text-text-secondary">(appears on your statement)</span>
+            Description <span className="text-xs text-text-muted">(appears on your statement)</span>
           </label>
           <input
             type="text"
@@ -244,7 +244,7 @@ export default function PayPage() {
         {/* Reference (recipient's statement) */}
         <div>
           <label className="block text-sm text-text-secondary mb-1">
-            Reference <span className="text-xs text-text-secondary">(appears on recipient's statement)</span>
+            Reference <span className="text-xs text-text-muted">(appears on recipient's statement)</span>
           </label>
           <input
             type="text"
@@ -258,7 +258,7 @@ export default function PayPage() {
         <button
           type="submit"
           disabled={submitting || !payee}
-          className="w-full bg-brand-purple hover:bg-brand-purple/80 disabled:opacity-50 text-white font-semibold rounded-lg py-3 transition-colors shadow-md"
+          className="w-full bg-gradient-to-r from-accent-teal to-accent-cyan hover:opacity-90 disabled:opacity-50 text-white font-semibold rounded-lg py-3 transition-opacity"
         >
           {submitting ? 'Paying...' : 'Pay'}
         </button>

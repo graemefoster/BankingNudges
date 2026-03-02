@@ -51,17 +51,17 @@ export const accountTypeLabel: Record<AccountType, string> = {
 };
 
 export const accountTypeColor: Record<AccountType, string> = {
-  [AccountType.Transaction]: 'text-brand-blue',
-  [AccountType.Savings]: 'text-brand-mint',
-  [AccountType.HomeLoan]: 'text-brand-red',
-  [AccountType.Offset]: 'text-brand-purple',
+  [AccountType.Transaction]: 'text-accent-cyan',
+  [AccountType.Savings]: 'text-accent-teal',
+  [AccountType.HomeLoan]: 'text-accent-coral',
+  [AccountType.Offset]: 'text-accent-amber',
 };
 
 export const accountTypeBg: Record<AccountType, string> = {
-  [AccountType.Transaction]: 'bg-brand-blue/15 text-brand-blue',
-  [AccountType.Savings]: 'bg-brand-mint/40 text-emerald-700',
-  [AccountType.HomeLoan]: 'bg-brand-red/15 text-brand-red',
-  [AccountType.Offset]: 'bg-brand-purple/15 text-brand-purple',
+  [AccountType.Transaction]: 'bg-accent-cyan/15 text-accent-cyan',
+  [AccountType.Savings]: 'bg-accent-teal/15 text-accent-teal',
+  [AccountType.HomeLoan]: 'bg-accent-coral/15 text-accent-coral',
+  [AccountType.Offset]: 'bg-accent-amber/15 text-accent-amber',
 };
 
 export const transactionTypeLabel: Record<TransactionType, string> = {

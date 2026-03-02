@@ -12,7 +12,7 @@ interface Props {
 }
 
 function txColor(t: Transaction): string {
-  return t.amount >= 0 ? 'text-emerald-600' : 'text-brand-red';
+  return t.amount >= 0 ? 'text-accent-teal' : 'text-accent-coral';
 }
 
 function txSign(t: Transaction): string {
@@ -30,11 +30,11 @@ export default function TransactionList({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {transactions.map((tx) => (
         <div
           key={tx.id}
-          className="bg-light-card rounded-lg px-4 py-3 flex items-center justify-between shadow-sm"
+          className="bg-dark-elevated rounded-lg px-4 py-3 flex items-center justify-between border border-border"
         >
           <div className="flex-1 min-w-0 mr-3">
             <p className="text-sm font-medium text-text-primary truncate">
@@ -56,7 +56,7 @@ export default function TransactionList({
               {txSign(tx)}
               {formatCurrency(Math.abs(tx.amount))}
             </p>
-            <p className="text-xs text-text-secondary">
+            <p className="text-xs text-text-muted">
               Bal: {formatCurrency(tx.balanceAfter)}
             </p>
           </div>
@@ -65,14 +65,14 @@ export default function TransactionList({
 
       {loading && (
         <div className="flex justify-center py-4">
-          <div className="w-6 h-6 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-accent-teal border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 
       {!loading && hasMore && onLoadMore && (
         <button
           onClick={onLoadMore}
-          className="w-full py-2 text-sm text-brand-purple hover:text-brand-purple/70 transition-colors font-medium"
+          className="w-full py-2 text-sm text-accent-teal hover:text-accent-teal/70 transition-colors font-medium"
         >
           Load more
         </button>

@@ -77,7 +77,7 @@ export default function TransferPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-16">
-        <div className="w-8 h-8 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-accent-teal border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -93,17 +93,22 @@ export default function TransferPage() {
   const renderOption = (a: Account) =>
     `${a.name} (${accountTypeLabel[a.accountType]}) — ${formatCurrency(a.balance)}`;
 
+  const inputClasses =
+    'w-full bg-dark-elevated text-text-primary rounded-lg px-4 py-3 border border-border focus:border-accent-teal focus:ring-2 focus:ring-border-focus focus:outline-none';
+  const selectClasses =
+    `${inputClasses} appearance-none`;
+
   return (
     <div>
       <h2 className="text-xl font-bold text-text-primary mb-6">Transfer Funds</h2>
 
       {error && (
-        <div className="bg-brand-red/10 border border-brand-red/30 text-brand-red rounded-lg px-4 py-3 mb-4 text-sm">
+        <div className="bg-accent-coral/10 border border-accent-coral/30 text-accent-coral rounded-lg px-4 py-3 mb-4 text-sm">
           {error}
         </div>
       )}
       {success && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg px-4 py-3 mb-4 text-sm">
+        <div className="bg-accent-teal/10 border border-accent-teal/30 text-accent-teal rounded-lg px-4 py-3 mb-4 text-sm">
           {success}
         </div>
       )}
@@ -115,7 +120,7 @@ export default function TransferPage() {
           <select
             value={fromId}
             onChange={(e) => setFromId(e.target.value)}
-            className="w-full bg-light-card text-text-primary rounded-lg px-4 py-3 border border-gray-200 focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 focus:outline-none shadow-sm"
+            className={selectClasses}
           >
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
@@ -131,7 +136,7 @@ export default function TransferPage() {
           <select
             value={toId}
             onChange={(e) => setToId(e.target.value)}
-            className="w-full bg-light-card text-text-primary rounded-lg px-4 py-3 border border-gray-200 focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 focus:outline-none shadow-sm"
+            className={selectClasses}
           >
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
@@ -152,7 +157,7 @@ export default function TransferPage() {
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
             required
-            className="w-full bg-light-card text-text-primary rounded-lg px-4 py-3 border border-gray-200 focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 focus:outline-none shadow-sm"
+            className={inputClasses}
           />
         </div>
 
@@ -166,14 +171,14 @@ export default function TransferPage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="What's this for?"
-            className="w-full bg-light-card text-text-primary rounded-lg px-4 py-3 border border-gray-200 focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 focus:outline-none shadow-sm"
+            className={inputClasses}
           />
         </div>
 
         <button
           type="submit"
           disabled={submitting}
-          className="w-full bg-brand-purple hover:bg-brand-purple/80 disabled:opacity-50 text-white font-semibold rounded-lg py-3 transition-colors shadow-md"
+          className="w-full bg-gradient-to-r from-accent-teal to-accent-cyan hover:opacity-90 disabled:opacity-50 text-white font-semibold rounded-lg py-3 transition-opacity"
         >
           {submitting ? 'Transferring...' : 'Transfer'}
         </button>

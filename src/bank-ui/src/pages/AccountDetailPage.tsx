@@ -60,7 +60,7 @@ export default function AccountDetailPage() {
   if (loadingAccount) {
     return (
       <div className="flex justify-center py-16">
-        <div className="w-8 h-8 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-accent-teal border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -68,8 +68,8 @@ export default function AccountDetailPage() {
   if (!account) {
     return (
       <div className="text-center py-16">
-        <p className="text-brand-red mb-4">{error || 'Account not found'}</p>
-        <Link to="/dashboard" className="text-brand-purple hover:underline text-sm font-medium">
+        <p className="text-accent-coral mb-4">{error || 'Account not found'}</p>
+        <Link to="/dashboard" className="text-accent-teal hover:underline text-sm font-medium">
           Back to Dashboard
         </Link>
       </div>
@@ -83,13 +83,13 @@ export default function AccountDetailPage() {
       {/* Back link */}
       <Link
         to="/dashboard"
-        className="inline-flex items-center text-sm text-brand-purple hover:text-brand-purple/70 mb-4 transition-colors font-medium"
+        className="inline-flex items-center text-sm text-accent-teal hover:text-accent-teal/70 mb-4 transition-colors font-medium"
       >
         ← Back
       </Link>
 
       {/* Account card */}
-      <div className="bg-light-card rounded-xl p-5 mb-6 shadow-sm">
+      <div className="bg-dark-elevated rounded-xl p-5 mb-6 border border-border">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-text-primary">{account.name}</h2>
           <span
@@ -102,14 +102,14 @@ export default function AccountDetailPage() {
           BSB {account.bsb} · {account.accountNumber}
         </p>
         <div
-          className={`text-3xl font-bold ${isNegative ? 'text-brand-red' : 'text-emerald-600'}`}
+          className={`text-3xl font-extrabold tracking-tight ${isNegative ? 'text-accent-coral' : 'text-accent-teal'}`}
         >
           {formatCurrency(account.balance)}
         </div>
       </div>
 
       {error && (
-        <div className="bg-brand-red/10 border border-brand-red/30 text-brand-red rounded-lg px-4 py-3 mb-4 text-sm">
+        <div className="bg-accent-coral/10 border border-accent-coral/30 text-accent-coral rounded-lg px-4 py-3 mb-4 text-sm">
           {error}
         </div>
       )}

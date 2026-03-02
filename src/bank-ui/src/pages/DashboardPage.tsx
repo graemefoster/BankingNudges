@@ -38,17 +38,17 @@ export default function DashboardPage() {
       </div>
 
       {/* Total balance */}
-      <div className="bg-brand-purple rounded-xl p-5 mb-6 text-center shadow-md">
+      <div className="bg-gradient-to-br from-accent-teal to-accent-cyan rounded-2xl p-5 mb-6 text-center">
         <p className="text-xs text-white/80 uppercase tracking-wide mb-1">
           Total Balance
         </p>
-        <p className="text-3xl font-bold text-white">
+        <p className="text-3xl font-extrabold text-white tracking-tight">
           {loading ? '—' : formatCurrency(totalBalance)}
         </p>
       </div>
 
       {error && (
-        <div className="bg-brand-red/10 border border-brand-red/30 text-brand-red rounded-lg px-4 py-3 mb-4 text-sm">
+        <div className="bg-accent-coral/10 border border-accent-coral/30 text-accent-coral rounded-lg px-4 py-3 mb-4 text-sm">
           {error}
         </div>
       )}
@@ -60,7 +60,7 @@ export default function DashboardPage() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-accent-teal border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
         <div className="space-y-3">
