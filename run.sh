@@ -24,8 +24,8 @@ done
 cleanup() {
     echo ""
     echo "Shutting down..."
-    kill $API_PID $UI_PID $CRM_PID 2>/dev/null || true
-    wait $API_PID $UI_PID $CRM_PID 2>/dev/null || true
+    kill $API_PID $UI_PID $CRM_PID $FUNC_PID 2>/dev/null || true
+    wait $API_PID $UI_PID $CRM_PID $FUNC_PID 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -60,13 +60,20 @@ cd "$SCRIPT_DIR/src/bank-crm"
 npm run dev &
 CRM_PID=$!
 
+# 6. Start Azure Functions
+echo "⚡ Starting Functions..."
+cd "$SCRIPT_DIR/src/BankOfGraeme.Functions"
+func start --port 7071 &
+FUNC_PID=$!
+
 echo ""
 echo "════════════════════════════════════════"
 echo "  🏦 Bank of Graeme is running!"
-echo "  UI:  http://localhost:5173"
-echo "  CRM: http://localhost:5174"
-echo "  API: http://localhost:5225"
-echo "  API docs: http://localhost:5225/openapi/v1.json"
+echo "  UI:        http://localhost:5173"
+echo "  CRM:       http://localhost:5174"
+echo "  API:       http://localhost:5225"
+echo "  Functions: http://localhost:7071"
+echo "  API docs:  http://localhost:5225/openapi/v1.json"
 echo "════════════════════════════════════════"
 echo "  Press Ctrl+C to stop"
 echo ""

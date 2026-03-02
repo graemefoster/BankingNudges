@@ -1,15 +1,53 @@
 using Microsoft.EntityFrameworkCore;
 using BankOfGraeme.Api.Models;
+using BankOfGraeme.Api.Services;
 
 namespace BankOfGraeme.Api.Data;
 
-public class BankDbContext(DbContextOptions<BankDbContext> options) : DbContext(options)
+public class BankDbContext : DbContext
 {
+    private readonly IDateTimeProvider? _dateTimeProvider;
+
+    public BankDbContext(DbContextOptions<BankDbContext> options) : base(options) { }
+
+    public BankDbContext(DbContextOptions<BankDbContext> options, IDateTimeProvider dateTimeProvider) : base(options)
+    {
+        _dateTimeProvider = dateTimeProvider;
+    }
+
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<StaffUser> StaffUsers => Set<StaffUser>();
     public DbSet<CustomerNote> CustomerNotes => Set<CustomerNote>();
+    public DbSet<InterestAccrual> InterestAccruals => Set<InterestAccrual>();
+    public DbSet<SystemSettings> SystemSettings => Set<SystemSettings>();
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        StampCreatedAt();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        StampCreatedAt();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void StampCreatedAt()
+    {
+        var now = _dateTimeProvider?.UtcNow ?? DateTime.UtcNow;
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.State != EntityState.Added) continue;
+            var prop = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "CreatedAt");
+            if (prop is not null && prop.CurrentValue is DateTime dt && dt == default)
+            {
+                prop.CurrentValue = now;
+            }
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -85,6 +123,30 @@ public class BankDbContext(DbContextOptions<BankDbContext> options) : DbContext(
                 .HasForeignKey(n => n.StaffUserId);
 
             e.HasIndex(n => n.CreatedAt);
+        });
+
+        modelBuilder.Entity<InterestAccrual>(e =>
+        {
+            e.HasKey(i => i.Id);
+            e.Property(i => i.DailyAmount).HasPrecision(18, 6);
+
+            e.HasOne(i => i.Account)
+                .WithMany()
+                .HasForeignKey(i => i.AccountId);
+
+            e.HasOne(i => i.PostedTransaction)
+                .WithMany()
+                .HasForeignKey(i => i.PostedTransactionId);
+
+            e.HasIndex(i => new { i.AccountId, i.AccrualDate }).IsUnique();
+        });
+
+        modelBuilder.Entity<SystemSettings>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Key).HasMaxLength(100);
+            e.Property(s => s.Value).HasMaxLength(500);
+            e.HasIndex(s => s.Key).IsUnique();
         });
     }
 }

@@ -7,8 +7,10 @@ using System.Text.Json.Serialization;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<BankDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
+        b => b.MigrationsAssembly("BankOfGraeme.Api")));
 
+builder.Services.AddScoped<IDateTimeProvider, DatabaseDateTimeProvider>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<StaffAuthService>();
 
@@ -28,7 +30,8 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BankDbContext>();
     db.Database.Migrate();
-    SeedData.Seed(db);
+    var dateTime = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
+    SeedData.Seed(db, dateTime);
 }
 
 app.UseCors();
@@ -45,5 +48,8 @@ app.MapCrmCustomerEndpoints();
 app.MapCrmAccountEndpoints();
 app.MapCrmNoteEndpoints();
 app.MapCrmTransactionEndpoints();
+
+// Time travel
+app.MapTimeTravelEndpoints();
 
 app.Run();

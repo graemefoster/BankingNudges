@@ -18,7 +18,7 @@ public class Transaction
     public required string Description { get; set; }
     public TransactionType TransactionType { get; set; }
     public decimal BalanceAfter { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; }
 
     public Account Account { get; set; } = null!;
 }

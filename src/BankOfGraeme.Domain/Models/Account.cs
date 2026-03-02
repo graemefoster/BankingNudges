@@ -17,7 +17,7 @@ public class Account
     public required string AccountNumber { get; set; }
     public required string Name { get; set; }
     public decimal Balance { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; }
     public bool IsActive { get; set; } = true;
 
     // Optimistic concurrency

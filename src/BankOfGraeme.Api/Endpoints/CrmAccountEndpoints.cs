@@ -25,9 +25,9 @@ public static class CrmAccountEndpoints
             return account is null ? Results.NotFound() : Results.Ok(account);
         });
 
-        group.MapPost("/{id:int}/adjust", async (int id, AdjustBalanceRequest req, BankDbContext db, HttpContext http) =>
+        group.MapPost("/{id:int}/adjust", async (int id, AdjustBalanceRequest req, BankDbContext db, HttpContext http, StaffAuthService auth) =>
         {
-            var staffId = StaffAuthService.GetStaffIdFromContext(http);
+            var staffId = auth.GetStaffIdFromContext(http);
             var staff = await db.StaffUsers.FindAsync(staffId);
             if (staff is null) return Results.Unauthorized();
 
@@ -85,7 +85,8 @@ public static class CrmAccountEndpoints
     private static async ValueTask<object?> StaffAuthFilter(
         EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
-        var staffId = StaffAuthService.GetStaffIdFromContext(context.HttpContext);
+        var auth = context.HttpContext.RequestServices.GetRequiredService<StaffAuthService>();
+        var staffId = auth.GetStaffIdFromContext(context.HttpContext);
         if (staffId is null)
             return Results.Json(new { error = "Unauthorized" }, statusCode: 401);
         return await next(context);

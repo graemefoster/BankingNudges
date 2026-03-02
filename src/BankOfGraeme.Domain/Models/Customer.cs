@@ -8,7 +8,7 @@ public class Customer
     public required string Email { get; set; }
     public string? Phone { get; set; }
     public DateOnly DateOfBirth { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; }
 
     public List<Account> Accounts { get; set; } = [];
 

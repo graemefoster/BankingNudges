@@ -15,6 +15,10 @@ dist/
 # Database
 pgdata/
 
+# Azure Functions
+local.settings.json
+
 # OS
 .DS_Store
 Thumbs.db
+restyle-app

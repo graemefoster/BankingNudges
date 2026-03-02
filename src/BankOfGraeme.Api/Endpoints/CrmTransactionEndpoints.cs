@@ -51,7 +51,8 @@ public static class CrmTransactionEndpoints
     private static async ValueTask<object?> StaffAuthFilter(
         EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
-        var staffId = StaffAuthService.GetStaffIdFromContext(context.HttpContext);
+        var auth = context.HttpContext.RequestServices.GetRequiredService<StaffAuthService>();
+        var staffId = auth.GetStaffIdFromContext(context.HttpContext);
         if (staffId is null)
             return Results.Json(new { error = "Unauthorized" }, statusCode: 401);
         return await next(context);
