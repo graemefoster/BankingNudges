@@ -10,6 +10,7 @@ public class BankDbContext(DbContextOptions<BankDbContext> options) : DbContext(
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<StaffUser> StaffUsers => Set<StaffUser>();
     public DbSet<CustomerNote> CustomerNotes => Set<CustomerNote>();
+    public DbSet<InterestAccrual> InterestAccruals => Set<InterestAccrual>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -85,6 +86,22 @@ public class BankDbContext(DbContextOptions<BankDbContext> options) : DbContext(
                 .HasForeignKey(n => n.StaffUserId);
 
             e.HasIndex(n => n.CreatedAt);
+        });
+
+        modelBuilder.Entity<InterestAccrual>(e =>
+        {
+            e.HasKey(i => i.Id);
+            e.Property(i => i.DailyAmount).HasPrecision(18, 6);
+
+            e.HasOne(i => i.Account)
+                .WithMany()
+                .HasForeignKey(i => i.AccountId);
+
+            e.HasOne(i => i.PostedTransaction)
+                .WithMany()
+                .HasForeignKey(i => i.PostedTransactionId);
+
+            e.HasIndex(i => new { i.AccountId, i.AccrualDate }).IsUnique();
         });
     }
 }

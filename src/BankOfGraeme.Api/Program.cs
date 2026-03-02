@@ -7,7 +7,8 @@ using System.Text.Json.Serialization;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<BankDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
+        b => b.MigrationsAssembly("BankOfGraeme.Api")));
 
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<StaffAuthService>();
