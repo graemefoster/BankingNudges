@@ -13,7 +13,6 @@ builder.Services.AddDbContext<BankDbContext>(options =>
 builder.Services.AddScoped<IDateTimeProvider, DatabaseDateTimeProvider>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<StaffAuthService>();
-builder.Services.AddScoped<InterestCalculationService>();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);

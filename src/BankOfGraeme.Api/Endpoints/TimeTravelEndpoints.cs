@@ -1,4 +1,3 @@
-using BankOfGraeme.Api.Data;
 using BankOfGraeme.Api.Services;
 
 namespace BankOfGraeme.Api.Endpoints;
@@ -18,21 +17,10 @@ public static class TimeTravelEndpoints
                 realUtcNow = DateTime.UtcNow
             }));
 
-        group.MapPost("/advance", async (AdvanceRequest req, IDateTimeProvider dateTime, BankDbContext db, ILoggerFactory loggerFactory) =>
+        group.MapPost("/advance", async (AdvanceRequest req, IDateTimeProvider dateTime) =>
         {
             if (req.Days <= 0)
                 return Results.BadRequest(new { error = "Days must be positive" });
-
-            var startDate = dateTime.Today;
-
-            // Run interest batch for each intermediate day
-            var interestService = new InterestCalculationService(db, loggerFactory.CreateLogger<InterestCalculationService>());
-            for (int d = 1; d <= req.Days; d++)
-            {
-                var batchDate = startDate.AddDays(d);
-                await interestService.AccrueDailyInterestAsync(batchDate);
-                await interestService.PostMonthlyInterestAsync(batchDate);
-            }
 
             await dateTime.AdvanceDaysAsync(req.Days);
 
@@ -41,7 +29,8 @@ public static class TimeTravelEndpoints
                 virtualUtcNow = dateTime.UtcNow,
                 virtualToday = dateTime.Today.ToString("yyyy-MM-dd"),
                 daysAdvanced = dateTime.DaysAdvanced,
-                daysJustAdvanced = req.Days
+                daysJustAdvanced = req.Days,
+                note = "Interest accrual will be processed by the Functions app within a few seconds."
             });
         });
 

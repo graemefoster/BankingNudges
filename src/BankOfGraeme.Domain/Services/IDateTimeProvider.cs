@@ -89,8 +89,16 @@ public class DatabaseDateTimeProvider : IDateTimeProvider
         if (setting is not null)
         {
             setting.Value = "0";
-            await db.SaveChangesAsync();
         }
+
+        // Also clear LastProcessedDate so the catch-up function re-processes from today
+        var lastProcessed = await db.SystemSettings.FirstOrDefaultAsync(s => s.Key == "LastProcessedDate");
+        if (lastProcessed is not null)
+        {
+            db.SystemSettings.Remove(lastProcessed);
+        }
+
+        await db.SaveChangesAsync();
         _daysAdvanced = 0;
     }
 }
