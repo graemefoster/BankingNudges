@@ -11,11 +11,13 @@ namespace BankOfGraeme.Functions;
 /// Polls every 5 seconds and processes any unprocessed days between
 /// LastProcessedDate and the current virtual date.
 /// This handles both time-travel advances and real nightly catch-up.
+/// Each day's accrual, posting, and checkpoint are committed in a single
+/// transaction — everything commits or nothing does.
 /// </summary>
 public class TimeTravelCatchUpFunction(
     InterestCalculationService interestService,
     IDateTimeProvider dateTimeProvider,
-    DbContextOptions<BankDbContext> dbOptions,
+    BankDbContext db,
     ILogger<TimeTravelCatchUpFunction> logger)
 {
     [Function("TimeTravelCatchUp")]
@@ -24,7 +26,6 @@ public class TimeTravelCatchUpFunction(
     {
         var virtualToday = dateTimeProvider.Today;
 
-        using var db = new BankDbContext(dbOptions);
         var lastProcessedSetting = await db.SystemSettings
             .FirstOrDefaultAsync(s => s.Key == "LastProcessedDate");
 
@@ -51,25 +52,31 @@ public class TimeTravelCatchUpFunction(
 
         for (var date = lastProcessed.AddDays(1); date <= virtualToday; date = date.AddDays(1))
         {
+            // Wrap accrual + posting + checkpoint in one transaction
+            await using var txn = await db.Database.BeginTransactionAsync();
+
             await interestService.AccrueDailyInterestAsync(date);
             await interestService.PostMonthlyInterestAsync(date);
 
-            // Checkpoint after each day so progress survives timeouts/crashes
-            if (lastProcessedSetting is null)
+            // Re-query each iteration — service calls may clear the change tracker
+            var checkpoint = await db.SystemSettings
+                .FirstOrDefaultAsync(s => s.Key == "LastProcessedDate");
+
+            if (checkpoint is null)
             {
-                lastProcessedSetting = new SystemSettings
+                db.SystemSettings.Add(new SystemSettings
                 {
                     Key = "LastProcessedDate",
                     Value = date.ToString("yyyy-MM-dd")
-                };
-                db.SystemSettings.Add(lastProcessedSetting);
-                await db.SaveChangesAsync();
+                });
             }
             else
             {
-                lastProcessedSetting.Value = date.ToString("yyyy-MM-dd");
-                await db.SaveChangesAsync();
+                checkpoint.Value = date.ToString("yyyy-MM-dd");
             }
+
+            await db.SaveChangesAsync();
+            await txn.CommitAsync();
         }
 
         logger.LogInformation("Time-travel catch-up complete. LastProcessedDate = {Date}", virtualToday);

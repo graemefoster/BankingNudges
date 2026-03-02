@@ -86,9 +86,12 @@ public class InterestCalculationService(BankDbContext db, ILogger<InterestCalcul
             }
             catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
             {
-                // Concurrent run already inserted accruals — this is benign
+                // Concurrent run already inserted accruals — this is benign.
+                // Detach only the failed accrual entities, not the entire tracker
+                // (other consumers may have entities tracked on this shared context).
                 logger.LogWarning("Concurrent accrual detected for {Date}, treating as idempotent", accrualDate);
-                db.ChangeTracker.Clear();
+                foreach (var entry in db.ChangeTracker.Entries<InterestAccrual>().ToList())
+                    entry.State = EntityState.Detached;
             }
         }
         else
