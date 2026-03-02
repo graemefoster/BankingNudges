@@ -1,10 +1,11 @@
 using BankOfGraeme.Api.Models;
+using BankOfGraeme.Api.Services;
 
 namespace BankOfGraeme.Api.Data;
 
 public static class SeedData
 {
-    public static void Seed(BankDbContext db)
+    public static void Seed(BankDbContext db, IDateTimeProvider dateTime)
     {
         // Seed staff users independently so they're available in upgraded DBs
         if (!db.StaffUsers.Any())
@@ -76,7 +77,7 @@ public static class SeedData
         db.SaveChanges();
 
         // Seed transactions
-        var now = DateTime.UtcNow;
+        var now = dateTime.UtcNow;
         SeedTransactions(db, sarahTxn, now);
         SeedTransactions(db, sarahSav, now);
         SeedTransactions(db, jamesTxn, now);

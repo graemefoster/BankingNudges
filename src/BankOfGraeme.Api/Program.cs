@@ -10,8 +10,10 @@ builder.Services.AddDbContext<BankDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
         b => b.MigrationsAssembly("BankOfGraeme.Api")));
 
+builder.Services.AddScoped<IDateTimeProvider, DatabaseDateTimeProvider>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<StaffAuthService>();
+builder.Services.AddScoped<InterestCalculationService>();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
@@ -28,8 +30,11 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BankDbContext>();
+    var dateTime = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
+    if (dateTime is DatabaseDateTimeProvider dbProvider)
+        await dbProvider.LoadAsync();
     db.Database.Migrate();
-    SeedData.Seed(db);
+    SeedData.Seed(db, dateTime);
 }
 
 app.UseCors();
@@ -46,5 +51,8 @@ app.MapCrmCustomerEndpoints();
 app.MapCrmAccountEndpoints();
 app.MapCrmNoteEndpoints();
 app.MapCrmTransactionEndpoints();
+
+// Time travel
+app.MapTimeTravelEndpoints();
 
 app.Run();

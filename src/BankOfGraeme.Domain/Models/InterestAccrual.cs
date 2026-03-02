@@ -8,7 +8,7 @@ public class InterestAccrual
     public decimal DailyAmount { get; set; }
     public bool Posted { get; set; }
     public int? PostedTransactionId { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; }
 
     public Account Account { get; set; } = null!;
     public Transaction? PostedTransaction { get; set; }

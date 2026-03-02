@@ -10,6 +10,7 @@ var builder = FunctionsApplication.CreateBuilder(args);
 builder.Services.AddDbContext<BankDbContext>(options =>
     options.UseNpgsql(builder.Configuration["ConnectionStrings:DefaultConnection"]));
 
+builder.Services.AddScoped<IDateTimeProvider, DatabaseDateTimeProvider>();
 builder.Services.AddScoped<InterestCalculationService>();
 
 builder.Build().Run();

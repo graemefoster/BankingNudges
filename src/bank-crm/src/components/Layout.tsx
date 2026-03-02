@@ -1,4 +1,5 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import type { StaffSession } from '../types';
 
 const navItems = [
@@ -7,9 +8,22 @@ const navItems = [
 
 export default function Layout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const session = sessionStorage.getItem('staff_session');
   const staff: StaffSession | null = session ? JSON.parse(session) : null;
   const isLogin = !staff;
+  const [virtualDate, setVirtualDate] = useState<string | null>(null);
+  const [daysAdvanced, setDaysAdvanced] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/time-travel/current')
+      .then((r) => r.json())
+      .then((data) => {
+        setVirtualDate(data.virtualToday);
+        setDaysAdvanced(data.daysAdvanced);
+      })
+      .catch(() => {});
+  }, [location]);
 
   const handleLogout = () => {
     sessionStorage.removeItem('staff_session');
@@ -19,6 +33,11 @@ export default function Layout() {
   if (isLogin) {
     return (
       <div className="min-h-screen bg-crm-bg flex flex-col">
+        {daysAdvanced > 0 && virtualDate && (
+          <div className="bg-amber-500 text-white text-center text-xs py-1 font-medium">
+            ⏰ Virtual Date: {virtualDate} ({daysAdvanced} days advanced)
+          </div>
+        )}
         <div className="bg-crm-dark text-white px-3 py-1.5 text-xs flex items-center justify-between">
           <span className="font-bold">Bank of Graeme — Staff CRM</span>
         </div>
@@ -31,6 +50,11 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-crm-bg flex flex-col">
+      {daysAdvanced > 0 && virtualDate && (
+        <div className="bg-amber-500 text-white text-center text-xs py-1 font-medium">
+          ⏰ Virtual Date: {virtualDate} ({daysAdvanced} days advanced)
+        </div>
+      )}
       {/* Top bar */}
       <div className="bg-crm-dark text-white px-3 py-1.5 text-xs flex items-center justify-between">
         <div className="flex items-center gap-4">

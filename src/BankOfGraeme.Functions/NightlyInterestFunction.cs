@@ -6,6 +6,7 @@ namespace BankOfGraeme.Functions;
 
 public class NightlyInterestFunction(
     InterestCalculationService interestService,
+    IDateTimeProvider dateTimeProvider,
     ILogger<NightlyInterestFunction> logger)
 {
     /// <summary>
@@ -16,7 +17,7 @@ public class NightlyInterestFunction(
     public async Task Run(
         [TimerTrigger("0 0 2 * * *")] TimerInfo timer)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = DateOnly.FromDateTime(dateTimeProvider.UtcNow);
         logger.LogInformation("Nightly interest batch started for {Date}", today);
 
         try

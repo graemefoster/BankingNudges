@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 
 const navItems = [
   { to: '/dashboard', label: 'Home', icon: '🏠' },
@@ -9,9 +10,28 @@ const navItems = [
 export default function Layout() {
   const location = useLocation();
   const isLogin = location.pathname === '/';
+  const [virtualDate, setVirtualDate] = useState<string | null>(null);
+  const [daysAdvanced, setDaysAdvanced] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/time-travel/current')
+      .then((r) => r.json())
+      .then((data) => {
+        setVirtualDate(data.virtualToday);
+        setDaysAdvanced(data.daysAdvanced);
+      })
+      .catch(() => {});
+  }, [location]);
 
   return (
     <div className="min-h-screen bg-light-bg flex flex-col">
+      {/* Virtual time banner */}
+      {daysAdvanced > 0 && virtualDate && (
+        <div className="bg-amber-500 text-white text-center text-xs py-1 font-medium">
+          ⏰ Virtual Date: {virtualDate} ({daysAdvanced} days advanced)
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-brand-purple px-4 py-3 shadow-md">
         <div className="max-w-md mx-auto flex items-center justify-between">

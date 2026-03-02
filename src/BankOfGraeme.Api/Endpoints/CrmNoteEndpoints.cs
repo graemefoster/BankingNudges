@@ -29,9 +29,9 @@ public static class CrmNoteEndpoints
             return Results.Ok(notes);
         });
 
-        group.MapPost("/", async (int customerId, AddNoteRequest req, BankDbContext db, HttpContext http) =>
+        group.MapPost("/", async (int customerId, AddNoteRequest req, BankDbContext db, HttpContext http, StaffAuthService auth) =>
         {
-            var staffId = StaffAuthService.GetStaffIdFromContext(http);
+            var staffId = auth.GetStaffIdFromContext(http);
             if (staffId is null) return Results.Unauthorized();
 
             var customer = await db.Customers.FindAsync(customerId);
@@ -59,7 +59,8 @@ public static class CrmNoteEndpoints
     private static async ValueTask<object?> StaffAuthFilter(
         EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
-        var staffId = StaffAuthService.GetStaffIdFromContext(context.HttpContext);
+        var auth = context.HttpContext.RequestServices.GetRequiredService<StaffAuthService>();
+        var staffId = auth.GetStaffIdFromContext(context.HttpContext);
         if (staffId is null)
             return Results.Json(new { error = "Unauthorized" }, statusCode: 401);
         return await next(context);

@@ -19,7 +19,7 @@ A simple Australian retail banking app — .NET 10 API, PostgreSQL, React/TypeSc
 ./run.sh --fresh
 ```
 
-This starts PostgreSQL, the API (http://localhost:5225), the customer UI (http://localhost:5173), and the staff CRM (http://localhost:5174). Press Ctrl+C to stop.
+This starts PostgreSQL, the API (http://localhost:5225), the customer UI (http://localhost:5173), the staff CRM (http://localhost:5174), and the Azure Functions nightly batch (http://localhost:7071). Press Ctrl+C to stop.
 
 <details>
 <summary>Manual startup (step by step)</summary>
@@ -73,10 +73,37 @@ The frontend runs at **http://localhost:5173** and proxies `/api` to the backend
 | Backend | .NET 10 Minimal API |
 | ORM | Entity Framework Core + Npgsql |
 | Database | PostgreSQL 16 |
+| Nightly Batch | Azure Functions (isolated worker) |
 | Frontend | React 19 + TypeScript + Vite |
 | CRM Frontend | React 19 + TypeScript + Vite (separate app) |
 | Styling | Tailwind CSS v4 |
 | Routing | React Router |
+
+## Virtual Time (IDateTimeProvider)
+
+All time in the application is virtualised via `IDateTimeProvider`. **Never use `DateTime.UtcNow` or `DateTimeOffset.UtcNow` directly.** Instead, inject `IDateTimeProvider` and use its `UtcNow` or `Today` properties.
+
+### How it works
+
+- `SystemSettings` table stores a `DaysAdvanced` key (integer offset)
+- `DatabaseDateTimeProvider` reads this on first access and returns `DateTime.UtcNow.AddDays(offset)`
+- `BankDbContext.SaveChanges` automatically stamps `CreatedAt` on new entities with virtual time
+- Both UIs show a yellow banner when time has been advanced
+
+### Time Travel API
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/time-travel/current` | GET | Returns current virtual date and offset |
+| `/api/time-travel/advance` | POST | Advance by `{ "days": N }` — runs interest batch for each intermediate day |
+| `/api/time-travel/reset` | POST | Reset virtual time to real time |
+
+### Convention for contributors
+
+When adding new code that needs the current time:
+1. Inject `IDateTimeProvider` via constructor
+2. Use `dateTime.UtcNow` instead of `DateTime.UtcNow`
+3. For `CreatedAt` on entities — do nothing, the `SaveChanges` interceptor handles it automatically
 
 ## Color Palette
 
