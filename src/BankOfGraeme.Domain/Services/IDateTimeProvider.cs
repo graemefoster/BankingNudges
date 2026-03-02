@@ -15,13 +15,13 @@ public interface IDateTimeProvider
 
 public class DatabaseDateTimeProvider : IDateTimeProvider
 {
-    private readonly BankDbContext _db;
+    private readonly DbContextOptions<BankDbContext> _options;
     private int _daysAdvanced;
     private bool _loaded;
 
-    public DatabaseDateTimeProvider(BankDbContext db)
+    public DatabaseDateTimeProvider(DbContextOptions<BankDbContext> options)
     {
-        _db = db;
+        _options = options;
     }
 
     public DateTime UtcNow
@@ -43,10 +43,13 @@ public class DatabaseDateTimeProvider : IDateTimeProvider
         }
     }
 
+    private BankDbContext CreateDb() => new(_options);
+
     private void EnsureLoaded()
     {
         if (_loaded) return;
-        var setting = _db.SystemSettings
+        using var db = CreateDb();
+        var setting = db.SystemSettings
             .AsNoTracking()
             .FirstOrDefault(s => s.Key == "DaysAdvanced");
         _daysAdvanced = setting is not null ? int.Parse(setting.Value) : 0;
@@ -56,7 +59,8 @@ public class DatabaseDateTimeProvider : IDateTimeProvider
     public async Task LoadAsync()
     {
         if (_loaded) return;
-        var setting = await _db.SystemSettings
+        using var db = CreateDb();
+        var setting = await db.SystemSettings
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Key == "DaysAdvanced");
         _daysAdvanced = setting is not null ? int.Parse(setting.Value) : 0;
@@ -66,24 +70,26 @@ public class DatabaseDateTimeProvider : IDateTimeProvider
     public async Task AdvanceDaysAsync(int days)
     {
         EnsureLoaded();
-        var setting = await _db.SystemSettings.FirstOrDefaultAsync(s => s.Key == "DaysAdvanced");
+        using var db = CreateDb();
+        var setting = await db.SystemSettings.FirstOrDefaultAsync(s => s.Key == "DaysAdvanced");
         if (setting is null)
         {
             setting = new SystemSettings { Key = "DaysAdvanced", Value = "0" };
-            _db.SystemSettings.Add(setting);
+            db.SystemSettings.Add(setting);
         }
         _daysAdvanced += days;
         setting.Value = _daysAdvanced.ToString();
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     public async Task ResetAsync()
     {
-        var setting = await _db.SystemSettings.FirstOrDefaultAsync(s => s.Key == "DaysAdvanced");
+        using var db = CreateDb();
+        var setting = await db.SystemSettings.FirstOrDefaultAsync(s => s.Key == "DaysAdvanced");
         if (setting is not null)
         {
             setting.Value = "0";
-            await _db.SaveChangesAsync();
+            await db.SaveChangesAsync();
         }
         _daysAdvanced = 0;
     }

@@ -30,10 +30,8 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BankDbContext>();
-    var dateTime = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
-    if (dateTime is DatabaseDateTimeProvider dbProvider)
-        await dbProvider.LoadAsync();
     db.Database.Migrate();
+    var dateTime = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
     SeedData.Seed(db, dateTime);
 }
 
