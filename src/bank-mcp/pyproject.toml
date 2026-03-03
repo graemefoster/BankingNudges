@@ -1,0 +1,17 @@
+[project]
+name = "bank-mcp"
+version = "0.1.0"
+description = "MCP server for Bank of Graeme contact centre AI agents"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=2.0.0",
+    "asyncpg>=0.30.0",
+    "pydantic>=2.0.0",
+]
+
+[project.scripts]
+bank-mcp = "bank_mcp.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

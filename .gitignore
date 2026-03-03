@@ -22,3 +22,8 @@ local.settings.json
 .DS_Store
 Thumbs.db
 restyle-app
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
