@@ -4,6 +4,8 @@ import sys
 from contextlib import asynccontextmanager
 
 from fastmcp import FastMCP
+from fastmcp.server.context import Context
+from fastmcp.dependencies import CurrentContext
 
 from bank_mcp.db import create_pool
 from bank_mcp.tools.customers import search_customers, get_customer_profile
@@ -61,6 +63,7 @@ mcp = FastMCP(
 async def search_customers_tool(
     query: str,
     limit: int = 10,
+    ctx: Context = CurrentContext,
 ) -> str:
     """Search for a customer by name, email, phone number, or account number.
     This is typically the first step when a customer calls in.
@@ -69,7 +72,7 @@ async def search_customers_tool(
         query: Search term — can be a name, email address, phone number, BSB+account number, or just account number.
         limit: Maximum number of results to return (default 10).
     """
-    pool = mcp.get_context().lifespan_context["pool"]
+    pool = ctx.lifespan_context["pool"]
     results = await search_customers(pool, query, limit)
     if not results:
         return "No customers found matching that query."
@@ -83,13 +86,13 @@ async def search_customers_tool(
 
 
 @mcp.tool
-async def get_customer_profile_tool(customer_id: int) -> str:
+async def get_customer_profile_tool(customer_id: int, ctx: Context = CurrentContext) -> str:
     """Get a customer's full profile including all their accounts and net financial position.
 
     Args:
         customer_id: The customer's ID (from search_customers).
     """
-    pool = mcp.get_context().lifespan_context["pool"]
+    pool = ctx.lifespan_context["pool"]
     try:
         p = await get_customer_profile(pool, customer_id)
     except ValueError as e:
@@ -116,13 +119,13 @@ async def get_customer_profile_tool(customer_id: int) -> str:
 # ---------------------------------------------------------------------------
 
 @mcp.tool
-async def get_account_details_tool(account_id: int) -> str:
+async def get_account_details_tool(account_id: int, ctx: Context = CurrentContext) -> str:
     """Get detailed information about a specific account including balance, available balance, loan details, and offset accounts.
 
     Args:
         account_id: The account ID (from customer profile).
     """
-    pool = mcp.get_context().lifespan_context["pool"]
+    pool = ctx.lifespan_context["pool"]
     try:
         a = await get_account_details(pool, account_id)
     except ValueError as e:
@@ -151,6 +154,7 @@ async def get_balance_history_tool(
     account_id: int,
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
+    ctx: Context = CurrentContext,
 ) -> str:
     """Get the end-of-day balance history for an account over a date range.
     Useful for seeing how a balance has changed over time.
@@ -160,7 +164,7 @@ async def get_balance_history_tool(
         from_date: Start date (YYYY-MM-DD). Defaults to 30 days ago.
         to_date: End date (YYYY-MM-DD). Defaults to today.
     """
-    pool = mcp.get_context().lifespan_context["pool"]
+    pool = ctx.lifespan_context["pool"]
     fd = _parse_date(from_date)
     td = _parse_date(to_date)
     snapshots = await get_balance_history(pool, account_id, fd, td)
@@ -192,6 +196,7 @@ async def get_transactions_tool(
     status: Optional[str] = None,
     page: int = 1,
     page_size: int = 20,
+    ctx: Context = CurrentContext,
 ) -> str:
     """Get a filtered, paginated list of transactions for an account.
 
@@ -207,7 +212,7 @@ async def get_transactions_tool(
         page: Page number (default 1).
         page_size: Results per page (default 20).
     """
-    pool = mcp.get_context().lifespan_context["pool"]
+    pool = ctx.lifespan_context["pool"]
     fd = _parse_date(from_date)
     td = _parse_date(to_date)
     result = await get_transactions(
@@ -233,6 +238,7 @@ async def search_transactions_tool(
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
     limit: int = 20,
+    ctx: Context = CurrentContext,
 ) -> str:
     """Search for transactions across ALL of a customer's accounts by description.
     Useful when a customer says "I see a charge from X" but doesn't know which account.
@@ -244,7 +250,7 @@ async def search_transactions_tool(
         to_date: End date filter (YYYY-MM-DD).
         limit: Maximum results (default 20).
     """
-    pool = mcp.get_context().lifespan_context["pool"]
+    pool = ctx.lifespan_context["pool"]
     fd = _parse_date(from_date)
     td = _parse_date(to_date)
     results = await search_transactions(pool, customer_id, description_query, fd, td, limit)
@@ -264,6 +270,7 @@ async def find_similar_transactions_tool(
     transaction_id: int,
     similarity_window_days: int = 90,
     amount_tolerance_pct: float = 10.0,
+    ctx: Context = CurrentContext,
 ) -> str:
     """Find transactions similar to a given transaction — useful for dispute investigation.
     Matches by similar description (merchant name) and/or similar amount.
@@ -273,7 +280,7 @@ async def find_similar_transactions_tool(
         similarity_window_days: How far back/forward to search (default 90 days).
         amount_tolerance_pct: How close the amount needs to be, as a percentage (default 10%).
     """
-    pool = mcp.get_context().lifespan_context["pool"]
+    pool = ctx.lifespan_context["pool"]
     try:
         results = await find_similar_transactions(
             pool, transaction_id, similarity_window_days, amount_tolerance_pct
@@ -297,6 +304,7 @@ async def find_potential_duplicate_charges_tool(
     account_id: int,
     lookback_days: int = 30,
     time_window_days: int = 3,
+    ctx: Context = CurrentContext,
 ) -> str:
     """Detect potential duplicate charges on an account.
     Finds transactions with the same amount and similar description within a short time window.
@@ -306,7 +314,7 @@ async def find_potential_duplicate_charges_tool(
         lookback_days: How many days back to look (default 30).
         time_window_days: Maximum days apart for transactions to be considered duplicates (default 3).
     """
-    pool = mcp.get_context().lifespan_context["pool"]
+    pool = ctx.lifespan_context["pool"]
     groups = await find_potential_duplicate_charges(
         pool, account_id, lookback_days, time_window_days
     )
@@ -324,14 +332,14 @@ async def find_potential_duplicate_charges_tool(
 
 
 @mcp.tool
-async def get_pending_transactions_tool(account_id: int) -> str:
+async def get_pending_transactions_tool(account_id: int, ctx: Context = CurrentContext) -> str:
     """Get all pending (unsettled) transactions for an account.
     Explains why the available balance differs from the ledger balance.
 
     Args:
         account_id: The account ID.
     """
-    pool = mcp.get_context().lifespan_context["pool"]
+    pool = ctx.lifespan_context["pool"]
     results = await get_pending_transactions(pool, account_id)
     if not results:
         return "No pending transactions — all transactions are settled."
@@ -352,6 +360,7 @@ async def get_pending_transactions_tool(account_id: int) -> str:
 async def get_scheduled_payments_tool(
     account_id: int,
     include_inactive: bool = False,
+    ctx: Context = CurrentContext,
 ) -> str:
     """Get all scheduled payments (direct debits) for an account.
 
@@ -359,7 +368,7 @@ async def get_scheduled_payments_tool(
         account_id: The account ID.
         include_inactive: Whether to include cancelled/expired payments (default false).
     """
-    pool = mcp.get_context().lifespan_context["pool"]
+    pool = ctx.lifespan_context["pool"]
     results = await get_scheduled_payments(pool, account_id, include_inactive)
     if not results:
         return "No scheduled payments found for this account."
@@ -380,6 +389,7 @@ async def get_scheduled_payments_tool(
 async def get_payment_execution_history_tool(
     scheduled_payment_id: int,
     limit: int = 10,
+    ctx: Context = CurrentContext,
 ) -> str:
     """Get recent execution history for a specific scheduled payment.
     Shows whether payments went through or were declined (insufficient funds).
@@ -388,7 +398,7 @@ async def get_payment_execution_history_tool(
         scheduled_payment_id: The scheduled payment ID (from get_scheduled_payments).
         limit: Maximum results (default 10).
     """
-    pool = mcp.get_context().lifespan_context["pool"]
+    pool = ctx.lifespan_context["pool"]
     try:
         results = await get_payment_execution_history(pool, scheduled_payment_id, limit)
     except ValueError as e:
@@ -413,6 +423,7 @@ async def get_payment_execution_history_tool(
 async def get_customer_notes_tool(
     customer_id: int,
     limit: int = 20,
+    ctx: Context = CurrentContext,
 ) -> str:
     """Get previous interaction notes for a customer, written by staff.
     Provides context before speaking with the customer.
@@ -421,7 +432,7 @@ async def get_customer_notes_tool(
         customer_id: The customer's ID.
         limit: Maximum notes to return (default 20).
     """
-    pool = mcp.get_context().lifespan_context["pool"]
+    pool = ctx.lifespan_context["pool"]
     results = await get_customer_notes(pool, customer_id, limit)
     if not results:
         return "No notes found for this customer."
@@ -442,6 +453,7 @@ async def get_spending_summary_tool(
     account_id: int,
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
+    ctx: Context = CurrentContext,
 ) -> str:
     """Get a spending breakdown by transaction type for an account.
 
@@ -450,7 +462,7 @@ async def get_spending_summary_tool(
         from_date: Start date (YYYY-MM-DD). Defaults to 30 days ago.
         to_date: End date (YYYY-MM-DD). Defaults to today.
     """
-    pool = mcp.get_context().lifespan_context["pool"]
+    pool = ctx.lifespan_context["pool"]
     fd = _parse_date(from_date)
     td = _parse_date(to_date)
     s = await get_spending_summary(pool, account_id, fd, td)
@@ -472,6 +484,7 @@ async def get_interest_summary_tool(
     account_id: int,
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
+    ctx: Context = CurrentContext,
 ) -> str:
     """Get interest accrual summary for an account.
     Shows daily interest charges (for loans) or earnings (for savings).
@@ -481,7 +494,7 @@ async def get_interest_summary_tool(
         from_date: Start date (YYYY-MM-DD). Defaults to 30 days ago.
         to_date: End date (YYYY-MM-DD). Defaults to today.
     """
-    pool = mcp.get_context().lifespan_context["pool"]
+    pool = ctx.lifespan_context["pool"]
     fd = _parse_date(from_date)
     td = _parse_date(to_date)
     s = await get_interest_summary(pool, account_id, fd, td)
