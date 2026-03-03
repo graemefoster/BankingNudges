@@ -286,7 +286,10 @@ public static class SeedData
         // Phase 6: Mark some recent withdrawals as pending (last 3 days)
         MarkRecentWithdrawalsAsPending(db, now);
 
-        // Phase 7: Set LastProcessedDate so the catch-up function doesn't reprocess seed data
+        // Phase 7: Generate historical EOD balance snapshots from transaction running sums
+        GenerateBalanceSnapshots(db);
+
+        // Phase 8: Set LastProcessedDate so the catch-up function doesn't reprocess seed data
         SetLastProcessedDate(db, now);
     }
 
@@ -357,6 +360,46 @@ public static class SeedData
             Value = today.ToString("yyyy-MM-dd")
         });
         db.SaveChanges();
+    }
+
+    private static void GenerateBalanceSnapshots(BankDbContext db)
+    {
+        // Compute running sum of settled transactions per account per day,
+        // then adjust AvailableBalance for days with pending holds.
+        db.Database.ExecuteSqlRaw("""
+            WITH daily_settled AS (
+                SELECT "AccountId",
+                       "CreatedAt"::date AS txn_date,
+                       SUM("Amount") AS day_amount
+                FROM "Transactions"
+                WHERE "Status" = 'Settled'
+                GROUP BY "AccountId", "CreatedAt"::date
+            ),
+            running AS (
+                SELECT "AccountId",
+                       txn_date,
+                       SUM(day_amount) OVER (
+                           PARTITION BY "AccountId" ORDER BY txn_date
+                       ) AS ledger_balance
+                FROM daily_settled
+            ),
+            INSERT INTO "AccountBalanceSnapshots"
+                ("AccountId", "SnapshotDate", "LedgerBalance", "AvailableBalance", "CreatedAt")
+            SELECT r."AccountId",
+                   r.txn_date,
+                   r.ledger_balance,
+                   r.ledger_balance + p.cumulative_pending,
+                   (r.txn_date + TIME '23:59:59')::timestamp
+            FROM running r
+            LEFT JOIN LATERAL (
+                SELECT COALESCE(SUM(t2."Amount"), 0) AS cumulative_pending
+                FROM "Transactions" t2
+                WHERE t2."Status" = 'Pending'
+                  AND t2."Amount" < 0
+                  AND t2."AccountId" = r."AccountId"
+                  AND t2."CreatedAt"::date <= r.txn_date
+            ) p ON true
+        """);
     }
 
     private static Customer GenerateCustomer(Random rng, int index, DateTime now)

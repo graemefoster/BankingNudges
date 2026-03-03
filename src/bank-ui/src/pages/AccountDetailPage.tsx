@@ -125,6 +125,7 @@ export default function AccountDetailPage() {
       </h3>
       <TransactionList
         transactions={transactions}
+        accountBalance={account.balance}
         loading={loadingTx}
         hasMore={hasMore}
         onLoadMore={loadMore}
