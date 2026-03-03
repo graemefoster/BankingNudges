@@ -285,6 +285,9 @@ public static class SeedData
 
         // Phase 6: Mark some recent withdrawals as pending (last 3 days)
         MarkRecentWithdrawalsAsPending(db, now);
+
+        // Phase 7: Set LastProcessedDate so the catch-up function doesn't reprocess seed data
+        SetLastProcessedDate(db, now);
     }
 
     private static void FlushTransactions(BankDbContext db, List<Transaction> buffer)
@@ -343,6 +346,17 @@ public static class SeedData
             ) p
             WHERE a."Id" = p."AccountId"
         """);
+    }
+
+    private static void SetLastProcessedDate(BankDbContext db, DateTime now)
+    {
+        var today = DateOnly.FromDateTime(now);
+        db.SystemSettings.Add(new SystemSettings
+        {
+            Key = "LastProcessedDate",
+            Value = today.ToString("yyyy-MM-dd")
+        });
+        db.SaveChanges();
     }
 
     private static Customer GenerateCustomer(Random rng, int index, DateTime now)

@@ -11,8 +11,17 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export function getCustomers(): Promise<Customer[]> {
-  return fetchJson<Customer[]>(`${BASE}/customers`);
+export interface CustomerPage {
+  customers: Customer[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export function getCustomers(search?: string, page = 1, pageSize = 20, signal?: AbortSignal): Promise<CustomerPage> {
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  if (search) params.set('search', search);
+  return fetchJson<CustomerPage>(`${BASE}/customers?${params}`, signal ? { signal } : undefined);
 }
 
 export function getCustomerAccounts(customerId: string): Promise<Account[]> {

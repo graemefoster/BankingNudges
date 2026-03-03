@@ -10,13 +10,36 @@ public static class CustomerEndpoints
     {
         var group = app.MapGroup("/api/customers").WithTags("Customers");
 
-        group.MapGet("/", async (BankDbContext db) =>
-            await db.Customers.Select(c => new
+        group.MapGet("/", async (BankDbContext db, string? search, int page = 1, int pageSize = 20) =>
+        {
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, 100);
+            var query = db.Customers.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
             {
-                c.Id, c.FirstName, c.LastName, c.Email,
-                FullName = c.FirstName + " " + c.LastName,
-                AccountCount = c.Accounts.Count
-            }).ToListAsync());
+                var term = search.ToLower();
+                query = query.Where(c =>
+                    c.FirstName.ToLower().Contains(term) ||
+                    c.LastName.ToLower().Contains(term) ||
+                    c.Email.ToLower().Contains(term));
+            }
+
+            var total = await query.CountAsync();
+            var customers = await query
+                .OrderBy(c => c.LastName).ThenBy(c => c.FirstName)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(c => new
+                {
+                    c.Id, c.FirstName, c.LastName, c.Email,
+                    FullName = c.FirstName + " " + c.LastName,
+                    AccountCount = c.Accounts.Count
+                })
+                .ToListAsync();
+
+            return Results.Ok(new { customers, total, page, pageSize });
+        });
 
         group.MapGet("/{id:int}", async (int id, BankDbContext db) =>
         {
