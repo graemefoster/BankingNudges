@@ -7,7 +7,8 @@ public enum TransactionType
     Transfer,
     Interest,
     Repayment,
-    Adjustment
+    Adjustment,
+    DirectDebit
 }
 
 public class Transaction

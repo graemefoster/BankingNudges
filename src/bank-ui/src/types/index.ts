@@ -21,6 +21,7 @@ export const TransactionType = {
   Transfer: 2,
   Interest: 3,
   Repayment: 4,
+  DirectDebit: 6,
 } as const;
 export type TransactionType = (typeof TransactionType)[keyof typeof TransactionType];
 
@@ -79,6 +80,34 @@ export const transactionTypeLabel: Record<TransactionType, string> = {
   [TransactionType.Transfer]: 'Transfer',
   [TransactionType.Interest]: 'Interest',
   [TransactionType.Repayment]: 'Repayment',
+  [TransactionType.DirectDebit]: 'Direct Debit',
+};
+
+export interface ScheduledPayment {
+  id: number;
+  accountId: number;
+  payeeName: string;
+  payeeBsb: string | null;
+  payeeAccountNumber: string | null;
+  payeeAccountId: number | null;
+  amount: number;
+  description: string | null;
+  reference: string | null;
+  frequency: string;
+  startDate: string;
+  endDate: string | null;
+  nextDueDate: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export const frequencyLabel: Record<string, string> = {
+  OneOff: 'One-off',
+  Weekly: 'Weekly',
+  Fortnightly: 'Fortnightly',
+  Monthly: 'Monthly',
+  Quarterly: 'Quarterly',
+  Yearly: 'Yearly',
 };
 
 export function formatCurrency(amount: number): string {

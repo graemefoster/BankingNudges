@@ -5,6 +5,7 @@ import type {
   Account,
   Transaction,
   StaffSession,
+  ScheduledPayment,
 } from '../types';
 
 const BASE = '/api/crm';
@@ -144,4 +145,9 @@ export function addNote(
     method: 'POST',
     body: JSON.stringify({ content }),
   });
+}
+
+// Scheduled Payments
+export function getScheduledPayments(accountId: number): Promise<ScheduledPayment[]> {
+  return fetchJson(`${BASE}/accounts/${accountId}/scheduled-payments`);
 }

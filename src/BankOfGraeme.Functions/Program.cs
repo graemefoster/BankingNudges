@@ -13,5 +13,6 @@ builder.Services.AddDbContext<BankDbContext>(options =>
 builder.Services.AddScoped<IDateTimeProvider, DatabaseDateTimeProvider>();
 builder.Services.AddScoped<InterestCalculationService>();
 builder.Services.AddScoped<SettlementService>();
+builder.Services.AddScoped<ScheduledPaymentService>();
 
 builder.Build().Run();

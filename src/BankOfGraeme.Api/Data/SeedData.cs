@@ -280,6 +280,9 @@ public static class SeedData
         if (txnBuffer.Count > 0)
             FlushTransactions(db, txnBuffer);
 
+        // Phase 4b: Create scheduled payment records for transaction accounts
+        GenerateScheduledPayments(db, accountMetas, now);
+
         // Phase 5: Update account balances from sum of settled transactions
         UpdateAccountBalances(db);
 
@@ -291,6 +294,58 @@ public static class SeedData
 
         // Phase 8: Set LastProcessedDate so the catch-up function doesn't reprocess seed data
         SetLastProcessedDate(db, now);
+    }
+
+    private static void GenerateScheduledPayments(BankDbContext db, List<AccountMeta> accountMetas, DateTime now)
+    {
+        // Use a separate RNG seeded deterministically so scheduled payments
+        // are reproducible but don't disturb the transaction RNG sequence.
+        var rng = new Random(RandomSeed + 10);
+        var today = DateOnly.FromDateTime(now);
+        var scheduledPayments = new List<ScheduledPayment>();
+
+        foreach (var meta in accountMetas.Where(m => m.AccountType == AccountType.Transaction))
+        {
+            var subCount = rng.Next(2, 5);
+            var subIndices = new HashSet<int>();
+            while (subIndices.Count < subCount && subIndices.Count < SubscriptionMerchants.Length)
+                subIndices.Add(rng.Next(SubscriptionMerchants.Length));
+
+            foreach (var idx in subIndices)
+            {
+                var m = SubscriptionMerchants[idx];
+                var amount = RoundTo(RandomDecimal(rng, m.Min, m.Max), 0.01m);
+
+                // Start date is 1-28 days from account creation, billing day stays consistent
+                var billingDay = rng.Next(1, 29);
+                var startMonth = DateOnly.FromDateTime(meta.CreatedAt).AddMonths(1);
+                var startDate = new DateOnly(startMonth.Year, startMonth.Month, Math.Min(billingDay, DateTime.DaysInMonth(startMonth.Year, startMonth.Month)));
+
+                // Calculate next due date (advance forward from start until it's in the future)
+                var nextDue = startDate;
+                while (nextDue <= today)
+                    nextDue = nextDue.AddMonths(1);
+
+                scheduledPayments.Add(new ScheduledPayment
+                {
+                    AccountId = meta.AccountId,
+                    PayeeName = m.Desc,
+                    Amount = amount,
+                    Description = $"Direct Debit - {m.Desc}",
+                    Frequency = ScheduleFrequency.Monthly,
+                    StartDate = startDate,
+                    NextDueDate = nextDue,
+                    IsActive = true,
+                });
+            }
+        }
+
+        foreach (var batch in scheduledPayments.Chunk(CustomerBatchSize))
+        {
+            db.ScheduledPayments.AddRange(batch);
+            db.SaveChanges();
+            db.ChangeTracker.Clear();
+        }
     }
 
     private static void FlushTransactions(BankDbContext db, List<Transaction> buffer)

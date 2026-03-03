@@ -23,6 +23,7 @@ public class BankDbContext : DbContext
     public DbSet<InterestAccrual> InterestAccruals => Set<InterestAccrual>();
     public DbSet<AccountBalanceSnapshot> AccountBalanceSnapshots => Set<AccountBalanceSnapshot>();
     public DbSet<SystemSettings> SystemSettings => Set<SystemSettings>();
+    public DbSet<ScheduledPayment> ScheduledPayments => Set<ScheduledPayment>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
@@ -162,6 +163,30 @@ public class BankDbContext : DbContext
                 .HasForeignKey(s => s.AccountId);
 
             e.HasIndex(s => new { s.AccountId, s.SnapshotDate }).IsUnique();
+        });
+
+        modelBuilder.Entity<ScheduledPayment>(e =>
+        {
+            e.HasKey(sp => sp.Id);
+            e.Property(sp => sp.PayeeName).HasMaxLength(200);
+            e.Property(sp => sp.PayeeBsb).HasMaxLength(7);
+            e.Property(sp => sp.PayeeAccountNumber).HasMaxLength(10);
+            e.Property(sp => sp.Amount).HasPrecision(18, 2);
+            e.Property(sp => sp.Description).HasMaxLength(500);
+            e.Property(sp => sp.Reference).HasMaxLength(200);
+            e.Property(sp => sp.Frequency).HasConversion<string>().HasMaxLength(20);
+
+            e.HasOne(sp => sp.Account)
+                .WithMany()
+                .HasForeignKey(sp => sp.AccountId);
+
+            e.HasOne(sp => sp.PayeeAccount)
+                .WithMany()
+                .HasForeignKey(sp => sp.PayeeAccountId)
+                .IsRequired(false);
+
+            e.HasIndex(sp => new { sp.NextDueDate, sp.IsActive });
+            e.HasIndex(sp => sp.AccountId);
         });
     }
 }

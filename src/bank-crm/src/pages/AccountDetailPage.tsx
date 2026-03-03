@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getAccount, getTransactions, adjustBalance, closeAccount } from '../api/crmApi';
-import type { Account, Transaction } from '../types';
+import { getAccount, getTransactions, adjustBalance, closeAccount, getScheduledPayments } from '../api/crmApi';
+import type { Account, Transaction, ScheduledPayment } from '../types';
 import {
   TransactionStatus,
-  formatCurrency, formatDateTime, accountTypeLabel,
+  formatCurrency, formatDateTime, formatDate, accountTypeLabel,
   transactionTypeLabel,
 } from '../types';
 
@@ -19,6 +19,7 @@ export default function AccountDetailPage() {
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState('');
   const [loading, setLoading] = useState(true);
+  const [scheduledPayments, setScheduledPayments] = useState<ScheduledPayment[]>([]);
 
   // Adjust modal
   const [showAdjust, setShowAdjust] = useState(false);
@@ -40,6 +41,15 @@ export default function AccountDetailPage() {
     }
   }, [accountId]);
 
+  const loadScheduledPayments = useCallback(async () => {
+    try {
+      const sp = await getScheduledPayments(accountId);
+      setScheduledPayments(sp);
+    } catch (err) {
+      console.error('Failed to load scheduled payments', err);
+    }
+  }, [accountId]);
+
   const loadTransactions = useCallback(async () => {
     setLoading(true);
     try {
@@ -56,7 +66,7 @@ export default function AccountDetailPage() {
     }
   }, [accountId, typeFilter, page]);
 
-  useEffect(() => { loadAccount(); }, [loadAccount]);
+  useEffect(() => { loadAccount(); loadScheduledPayments(); }, [loadAccount, loadScheduledPayments]);
   useEffect(() => { loadTransactions(); }, [loadTransactions]);
 
   const handleAdjust = async () => {
@@ -249,6 +259,47 @@ export default function AccountDetailPage() {
         </div>
       )}
 
+      {/* Scheduled Payments */}
+      {scheduledPayments.length > 0 && (
+        <fieldset className="mb-3">
+          <legend>Scheduled Payments</legend>
+          <table className="w-full text-xs bg-white">
+            <thead>
+              <tr className="bg-crm-dark text-white text-left">
+                <th className="px-2 py-1 font-normal">Payee</th>
+                <th className="px-2 py-1 font-normal text-right">Amount</th>
+                <th className="px-2 py-1 font-normal">Frequency</th>
+                <th className="px-2 py-1 font-normal">Next Due</th>
+                <th className="px-2 py-1 font-normal">Start</th>
+                <th className="px-2 py-1 font-normal">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {scheduledPayments.map((sp, i) => (
+                <tr key={sp.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${!sp.isActive ? 'opacity-50' : ''}`}>
+                  <td className="px-2 py-1 font-medium">{sp.payeeName}</td>
+                  <td className="px-2 py-1 text-right font-mono text-red-700">
+                    -{formatCurrency(sp.amount)}
+                  </td>
+                  <td className="px-2 py-1 text-text-secondary">{sp.frequency}</td>
+                  <td className="px-2 py-1 text-text-secondary whitespace-nowrap">
+                    {sp.isActive ? formatDate(sp.nextDueDate) : '—'}
+                  </td>
+                  <td className="px-2 py-1 text-text-secondary whitespace-nowrap">{formatDate(sp.startDate)}</td>
+                  <td className="px-2 py-1">
+                    {sp.isActive ? (
+                      <span className="inline-block px-1.5 py-0.5 rounded bg-green-100 text-green-800 text-[10px] font-medium">Active</span>
+                    ) : (
+                      <span className="inline-block px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[10px] font-medium">Cancelled</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </fieldset>
+      )}
+
       {/* Transactions */}
       <fieldset>
         <legend>Transaction History</legend>
@@ -263,6 +314,7 @@ export default function AccountDetailPage() {
             <option value="Interest">Interest</option>
             <option value="Repayment">Repayment</option>
             <option value="Adjustment">Adjustment</option>
+            <option value="DirectDebit">Direct Debit</option>
           </select>
           <span className="text-text-secondary ml-auto">{total} record(s)</span>
         </div>

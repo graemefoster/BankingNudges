@@ -41,6 +41,7 @@ app.MapCustomerEndpoints();
 app.MapAccountEndpoints();
 app.MapTransactionEndpoints();
 app.MapPaymentEndpoints();
+app.MapScheduledPaymentEndpoints();
 
 // CRM endpoints
 app.MapCrmAuthEndpoints();
@@ -48,6 +49,7 @@ app.MapCrmCustomerEndpoints();
 app.MapCrmAccountEndpoints();
 app.MapCrmNoteEndpoints();
 app.MapCrmTransactionEndpoints();
+app.MapCrmScheduledPaymentEndpoints();
 
 // Time travel
 app.MapTimeTravelEndpoints();

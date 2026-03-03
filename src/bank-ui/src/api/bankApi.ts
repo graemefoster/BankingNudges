@@ -1,4 +1,4 @@
-import type { Account, Customer, Transaction } from '../types';
+import type { Account, Customer, Transaction, ScheduledPayment } from '../types';
 
 const BASE = '/api';
 
@@ -90,5 +90,35 @@ export function pay(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ callerCustomerId: Number(callerCustomerId), fromAccountId: Number(fromAccountId), toBsb, toAccountNumber, amount, description, reference }),
+  });
+}
+
+export function getScheduledPayments(accountId: string): Promise<ScheduledPayment[]> {
+  return fetchJson<ScheduledPayment[]>(`${BASE}/accounts/${accountId}/scheduled-payments`);
+}
+
+export function createScheduledPayment(data: {
+  accountId: number;
+  payeeName: string;
+  payeeBsb?: string;
+  payeeAccountNumber?: string;
+  payeeAccountId?: number;
+  amount: number;
+  description?: string;
+  reference?: string;
+  frequency: string;
+  startDate: string;
+  endDate?: string;
+}) {
+  return fetchJson<ScheduledPayment>(`${BASE}/scheduled-payments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+}
+
+export function cancelScheduledPayment(id: number) {
+  return fetchJson<{ message: string }>(`${BASE}/scheduled-payments/${id}`, {
+    method: 'DELETE',
   });
 }

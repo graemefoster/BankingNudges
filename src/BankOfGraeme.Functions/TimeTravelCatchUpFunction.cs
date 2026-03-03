@@ -17,6 +17,7 @@ namespace BankOfGraeme.Functions;
 public class TimeTravelCatchUpFunction(
     InterestCalculationService interestService,
     SettlementService settlementService,
+    ScheduledPaymentService scheduledPaymentService,
     IDateTimeProvider dateTimeProvider,
     BankDbContext db,
     ILogger<TimeTravelCatchUpFunction> logger)
@@ -62,14 +63,19 @@ public class TimeTravelCatchUpFunction(
             if (settled > 0)
                 logger.LogInformation("Settled {Count} pending transactions for {Date}", settled, date);
 
-            // 2. Interest accrual and posting
+            // 2. Execute scheduled payments due on this date
+            var scheduledCount = await scheduledPaymentService.ExecuteDuePaymentsAsync(date);
+            if (scheduledCount > 0)
+                logger.LogInformation("Executed {Count} scheduled payments for {Date}", scheduledCount, date);
+
+            // 3. Interest accrual and posting
             await interestService.AccrueDailyInterestAsync(date);
             await interestService.PostMonthlyInterestAsync(date);
 
-            // 3. Create EOD balance snapshots for all active accounts
+            // 4. Create EOD balance snapshots for all active accounts
             await settlementService.CreateBalanceSnapshotsAsync(date);
 
-            // 4. Update checkpoint
+            // 5. Update checkpoint
             var checkpoint = await db.SystemSettings
                 .FirstOrDefaultAsync(s => s.Key == "LastProcessedDate");
 
