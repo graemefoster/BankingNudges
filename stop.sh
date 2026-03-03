@@ -8,6 +8,19 @@ set -euo pipefail
 PORTS=(5225 5173 5174 7071)
 LABELS=("API" "UI" "CRM" "Functions")
 
+stop_tree() {
+    local pid=$1
+    local children
+    children=$(pgrep -P "$pid" 2>/dev/null || true)
+    for child in $children; do
+        stop_tree "$child"
+    done
+    kill "$pid" 2>/dev/null || true
+    # If still alive after SIGTERM, force-kill
+    sleep 0.2
+    kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null || true
+}
+
 killed=0
 for i in "${!PORTS[@]}"; do
     port=${PORTS[$i]}
@@ -15,10 +28,22 @@ for i in "${!PORTS[@]}"; do
     pids=$(lsof -ti ":$port" 2>/dev/null || true)
     if [ -n "$pids" ]; then
         echo "🛑 Stopping $label (port $port)..."
-        echo "$pids" | xargs kill 2>/dev/null || true
+        for pid in $pids; do
+            stop_tree "$pid"
+        done
         ((killed++)) || true
     fi
 done
+
+# Sweep for orphaned Azure Functions dotnet workers that outlived their parent
+orphans=$(pgrep -f "BankOfGraeme.Functions.dll" 2>/dev/null || true)
+if [ -n "$orphans" ]; then
+    echo "🛑 Stopping orphaned Functions workers..."
+    for pid in $orphans; do
+        kill -9 "$pid" 2>/dev/null || true
+    done
+    ((killed++)) || true
+fi
 
 if [ "$killed" -eq 0 ]; then
     echo "✅ Nothing running — all services already stopped."
