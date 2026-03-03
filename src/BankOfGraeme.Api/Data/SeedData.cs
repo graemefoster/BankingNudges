@@ -422,7 +422,7 @@ public static class SeedData
                            PARTITION BY "AccountId" ORDER BY txn_date
                        ) AS ledger_balance
                 FROM daily_settled
-            ),
+            )
             INSERT INTO "AccountBalanceSnapshots"
                 ("AccountId", "SnapshotDate", "LedgerBalance", "AvailableBalance", "CreatedAt")
             SELECT r."AccountId",
