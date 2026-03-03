@@ -36,9 +36,9 @@ export interface Account {
 }
 
 export const TransactionStatus = {
-  Pending: 'Pending',
-  Settled: 'Settled',
-  Reversed: 'Reversed',
+  Pending: 0,
+  Settled: 1,
+  Reversed: 2,
 } as const;
 export type TransactionStatus = (typeof TransactionStatus)[keyof typeof TransactionStatus];
 

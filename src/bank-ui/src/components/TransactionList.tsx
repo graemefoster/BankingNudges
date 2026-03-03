@@ -1,5 +1,6 @@
 import type { Transaction } from '../types';
 import {
+  TransactionStatus,
   transactionTypeLabel,
   formatCurrency,
 } from '../types';
@@ -94,7 +95,7 @@ function groupByDay(
     group.label = formatDayLabel(group.transactions[0].createdAt);
     group.closingBalance = balance;
     const settledSum = group.transactions
-      .filter((t) => t.status === 'Settled')
+      .filter((t) => t.status === TransactionStatus.Settled)
       .reduce((sum, t) => sum + t.amount, 0);
     balance -= settledSum;
   }
@@ -134,7 +135,7 @@ export default function TransactionList({
             {group.transactions.map((tx) => (
               <div
                 key={tx.id}
-                className={`bg-dark-elevated rounded-lg px-4 py-3 flex items-center justify-between border border-border ${tx.status === 'Pending' ? 'opacity-70 border-accent-amber/30' : ''}`}
+                className={`bg-dark-elevated rounded-lg px-4 py-3 flex items-center justify-between border border-border ${tx.status === TransactionStatus.Pending ? 'opacity-70 border-accent-amber/30' : ''}`}
               >
                 <div className="flex-1 min-w-0 mr-3">
                   <p className="text-sm font-medium text-text-primary truncate">
@@ -154,7 +155,7 @@ export default function TransactionList({
                     {formatCurrency(Math.abs(tx.amount))}
                   </p>
                   <p className="text-xs text-text-muted">
-                    {tx.status === 'Pending' ? (
+                    {tx.status === TransactionStatus.Pending ? (
                       <span className="text-accent-amber">Pending</span>
                     ) : (
                       transactionTypeLabel[tx.transactionType]

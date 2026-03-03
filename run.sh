@@ -21,13 +21,37 @@ for arg in "$@"; do
     esac
 done
 
+API_PID="" UI_PID="" CRM_PID="" FUNC_PID=""
+
+# Kill a process and all its descendants
+kill_tree() {
+    local pid=$1
+    local children
+    children=$(pgrep -P "$pid" 2>/dev/null || true)
+    for child in $children; do
+        kill_tree "$child"
+    done
+    kill "$pid" 2>/dev/null || true
+    sleep 0.1
+    kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null || true
+}
+
 cleanup() {
     echo ""
     echo "Shutting down..."
-    kill $API_PID $UI_PID $CRM_PID $FUNC_PID 2>/dev/null || true
-    wait $API_PID $UI_PID $CRM_PID $FUNC_PID 2>/dev/null || true
+    for pid in $API_PID $UI_PID $CRM_PID $FUNC_PID; do
+        [ -n "$pid" ] && kill_tree "$pid"
+    done
+    # Sweep for any orphaned workers that escaped the tree walk
+    local orphans
+    orphans=$(pgrep -f "BankOfGraeme\." 2>/dev/null || true)
+    for pid in $orphans; do
+        kill -9 "$pid" 2>/dev/null || true
+    done
+    wait 2>/dev/null || true
+    echo "Stopped."
 }
-trap cleanup EXIT
+trap cleanup EXIT INT TERM
 
 # 1. Start PostgreSQL
 echo "🐘 Starting PostgreSQL..."
@@ -42,32 +66,32 @@ if [ "$FRESH" = true ]; then
     echo "✅ Fresh database created — migrations and seed will run on API startup."
 fi
 
-# 3. Start API
+# 3. Build all .NET projects upfront to avoid parallel build races on shared Domain DLL
+echo "🔨 Building .NET projects..."
+dotnet build "$SCRIPT_DIR/src/BankOfGraeme.Api/BankOfGraeme.Api.csproj" -v q 2>/dev/null || true
+dotnet build "$SCRIPT_DIR/src/BankOfGraeme.Functions/BankOfGraeme.Functions.csproj" -v q 2>/dev/null || true
+
+# 4. Start API
 echo "🚀 Starting API on http://localhost:5225..."
 cd "$SCRIPT_DIR/src/BankOfGraeme.Api"
-dotnet run --urls "http://localhost:5225" &
+dotnet run --no-build --urls "http://localhost:5225" &
 API_PID=$!
 
-# 4. Start frontend
+# 5. Start frontend
 echo "🎨 Starting UI on http://localhost:5173..."
 cd "$SCRIPT_DIR/src/bank-ui"
 npm run dev &
 UI_PID=$!
 
-# 5. Start CRM
+# 6. Start CRM
 echo "📋 Starting CRM on http://localhost:5174..."
 cd "$SCRIPT_DIR/src/bank-crm"
 npm run dev &
 CRM_PID=$!
 
-# 6. Build and start Azure Functions
-echo "⚡ Building Functions..."
-cd "$SCRIPT_DIR/src/BankOfGraeme.Functions"
-# Build ignoring metadata-generation error (macOS code-signing issue with .NET 6 tooling).
-# The actual DLL and .azurefunctions metadata are still produced.
-dotnet build -v q 2>/dev/null || true
+# 7. Start Azure Functions
 echo "⚡ Starting Functions..."
-cd bin/Debug/net10.0
+cd "$SCRIPT_DIR/src/BankOfGraeme.Functions/bin/Debug/net10.0"
 func start --no-build --port 7071 &
 FUNC_PID=$!
 
