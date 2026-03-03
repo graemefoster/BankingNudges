@@ -258,6 +258,7 @@ public static class SeedData
         // Phase 4: Generate transactions for each account
         var txnRng = new Random(RandomSeed + 2);
         var txnBuffer = new List<Transaction>(TransactionBatchSize);
+        var allSubscriptions = new List<SubscriptionInfo>();
 
         // Reload accounts with metadata needed for transaction generation
         var accountMetas = db.Accounts
@@ -267,8 +268,9 @@ public static class SeedData
 
         foreach (var meta in accountMetas)
         {
-            var transactions = GenerateTransactions(txnRng, meta, now);
+            var (transactions, subs) = GenerateTransactions(txnRng, meta, now);
             txnBuffer.AddRange(transactions);
+            allSubscriptions.AddRange(subs);
 
             if (txnBuffer.Count >= TransactionBatchSize)
             {
@@ -280,8 +282,8 @@ public static class SeedData
         if (txnBuffer.Count > 0)
             FlushTransactions(db, txnBuffer);
 
-        // Phase 4b: Create scheduled payment records for transaction accounts
-        GenerateScheduledPayments(db, accountMetas, now);
+        // Phase 4b: Create scheduled payment records matching the transaction subscriptions
+        GenerateScheduledPayments(db, allSubscriptions, now);
 
         // Phase 5: Update account balances from sum of settled transactions
         UpdateAccountBalances(db);
@@ -296,48 +298,31 @@ public static class SeedData
         SetLastProcessedDate(db, now);
     }
 
-    private static void GenerateScheduledPayments(BankDbContext db, List<AccountMeta> accountMetas, DateTime now)
+    private static void GenerateScheduledPayments(BankDbContext db, List<SubscriptionInfo> subscriptions, DateTime now)
     {
-        // Use a separate RNG seeded deterministically so scheduled payments
-        // are reproducible but don't disturb the transaction RNG sequence.
-        var rng = new Random(RandomSeed + 10);
         var today = DateOnly.FromDateTime(now);
         var scheduledPayments = new List<ScheduledPayment>();
 
-        foreach (var meta in accountMetas.Where(m => m.AccountType == AccountType.Transaction))
+        foreach (var sub in subscriptions)
         {
-            var subCount = rng.Next(2, 5);
-            var subIndices = new HashSet<int>();
-            while (subIndices.Count < subCount && subIndices.Count < SubscriptionMerchants.Length)
-                subIndices.Add(rng.Next(SubscriptionMerchants.Length));
+            var startDate = DateOnly.FromDateTime(sub.FirstBillingDate);
 
-            foreach (var idx in subIndices)
+            // Calculate next due date (advance forward from start until it's in the future)
+            var nextDue = startDate;
+            while (nextDue <= today)
+                nextDue = nextDue.AddMonths(1);
+
+            scheduledPayments.Add(new ScheduledPayment
             {
-                var m = SubscriptionMerchants[idx];
-                var amount = RoundTo(RandomDecimal(rng, m.Min, m.Max), 0.01m);
-
-                // Start date is 1-28 days from account creation, billing day stays consistent
-                var billingDay = rng.Next(1, 29);
-                var startMonth = DateOnly.FromDateTime(meta.CreatedAt).AddMonths(1);
-                var startDate = new DateOnly(startMonth.Year, startMonth.Month, Math.Min(billingDay, DateTime.DaysInMonth(startMonth.Year, startMonth.Month)));
-
-                // Calculate next due date (advance forward from start until it's in the future)
-                var nextDue = startDate;
-                while (nextDue <= today)
-                    nextDue = nextDue.AddMonths(1);
-
-                scheduledPayments.Add(new ScheduledPayment
-                {
-                    AccountId = meta.AccountId,
-                    PayeeName = m.Desc,
-                    Amount = amount,
-                    Description = $"Direct Debit - {m.Desc}",
-                    Frequency = ScheduleFrequency.Monthly,
-                    StartDate = startDate,
-                    NextDueDate = nextDue,
-                    IsActive = true,
-                });
-            }
+                AccountId = sub.AccountId,
+                PayeeName = sub.PayeeName,
+                Amount = sub.Amount,
+                Description = $"Direct Debit - {sub.PayeeName}",
+                Frequency = ScheduleFrequency.Monthly,
+                StartDate = startDate,
+                NextDueDate = nextDue,
+                IsActive = true,
+            });
         }
 
         foreach (var batch in scheduledPayments.Chunk(CustomerBatchSize))
@@ -571,19 +556,22 @@ public static class SeedData
         return accounts;
     }
 
-    private static List<Transaction> GenerateTransactions(Random rng, AccountMeta meta, DateTime now)
+    private static (List<Transaction> Txns, List<SubscriptionInfo> Subs) GenerateTransactions(Random rng, AccountMeta meta, DateTime now)
     {
         return meta.AccountType switch
         {
             AccountType.Transaction => GenerateTransactionAccountTxns(rng, meta, now),
-            AccountType.Savings => GenerateSavingsAccountTxns(rng, meta, now),
-            AccountType.HomeLoan => GenerateHomeLoanTxns(rng, meta, now),
-            AccountType.Offset => GenerateOffsetAccountTxns(rng, meta, now),
-            _ => []
+            _ => (meta.AccountType switch
+            {
+                AccountType.Savings => GenerateSavingsAccountTxns(rng, meta, now),
+                AccountType.HomeLoan => GenerateHomeLoanTxns(rng, meta, now),
+                AccountType.Offset => GenerateOffsetAccountTxns(rng, meta, now),
+                _ => []
+            }, [])
         };
     }
 
-    private static List<Transaction> GenerateTransactionAccountTxns(Random rng, AccountMeta meta, DateTime now)
+    private static (List<Transaction> Txns, List<SubscriptionInfo> Subs) GenerateTransactionAccountTxns(Random rng, AccountMeta meta, DateTime now)
     {
         var txns = new List<Transaction>();
         var balance = (decimal)(rng.Next(500, 5000)); // Starting balance from initial deposit
@@ -607,6 +595,7 @@ public static class SeedData
             subs.Add((m.Desc, RoundTo(RandomDecimal(rng, m.Min, m.Max), 0.01m)));
         }
         var nextSubDay = date.AddDays(rng.Next(1, 31));
+        var firstBillingDate = nextSubDay;
 
         var currentDate = date.AddDays(1);
         while (currentDate < now)
@@ -620,14 +609,14 @@ public static class SeedData
                 nextPayDay = nextPayDay.AddDays(14);
             }
 
-            // Subscriptions (monthly)
+            // Subscriptions (monthly) — use DirectDebit type to match scheduled payments
             if (currentDate >= nextSubDay)
             {
                 foreach (var (desc, amt) in subs)
                 {
                     balance -= amt;
-                    txns.Add(MakeTxn(meta.AccountId, -amt, desc,
-                        TransactionType.Withdrawal, nextSubDay.AddMinutes(rng.Next(0, 1440))));
+                    txns.Add(MakeTxn(meta.AccountId, -amt, $"Direct Debit - {desc}",
+                        TransactionType.DirectDebit, nextSubDay.Date.AddHours(9).AddMinutes(rng.Next(0, 60))));
                 }
                 nextSubDay = nextSubDay.AddMonths(1);
             }
@@ -673,7 +662,8 @@ public static class SeedData
             currentDate = currentDate.AddDays(1);
         }
 
-        return txns;
+        var subInfos = subs.Select(s => new SubscriptionInfo(meta.AccountId, s.Desc, s.Amount, firstBillingDate)).ToList();
+        return (txns, subInfos);
     }
 
     private static List<Transaction> GenerateSavingsAccountTxns(Random rng, AccountMeta meta, DateTime now)
@@ -901,4 +891,7 @@ public static class SeedData
     private record AccountMeta(
         int AccountId, AccountType AccountType, DateTime CreatedAt,
         decimal? LoanAmount, decimal? InterestRate, int? LoanTermMonths);
+
+    private record SubscriptionInfo(
+        int AccountId, string PayeeName, decimal Amount, DateTime FirstBillingDate);
 }
