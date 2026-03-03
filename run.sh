@@ -60,10 +60,15 @@ cd "$SCRIPT_DIR/src/bank-crm"
 npm run dev &
 CRM_PID=$!
 
-# 6. Start Azure Functions
-echo "⚡ Starting Functions..."
+# 6. Build and start Azure Functions
+echo "⚡ Building Functions..."
 cd "$SCRIPT_DIR/src/BankOfGraeme.Functions"
-func start --port 7071 &
+# Build ignoring metadata-generation error (macOS code-signing issue with .NET 6 tooling).
+# The actual DLL and .azurefunctions metadata are still produced.
+dotnet build -v q 2>/dev/null || true
+echo "⚡ Starting Functions..."
+cd bin/Debug/net10.0
+func start --no-build --port 7071 &
 FUNC_PID=$!
 
 echo ""
