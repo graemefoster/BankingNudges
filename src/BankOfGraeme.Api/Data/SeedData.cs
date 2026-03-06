@@ -240,11 +240,24 @@ public static class SeedData
                     a.InterestRate ?? 6.0m,
                     a.LoanTermMonths ?? 360));
 
+        var offsetEstimateByCustomer = accountMetas
+            .Where(a => a.AccountType == AccountType.Offset)
+            .ToDictionary(
+                a => a.CustomerId,
+                a => EstimateOffsetBalanceForInterest(customerProfilesById[a.CustomerId]));
+
         foreach (var meta in accountMetas)
         {
             var profile = customerProfilesById[meta.CustomerId];
             homeLoanRepaymentByCustomer.TryGetValue(meta.CustomerId, out var homeLoanRepayment);
-            var (transactions, scheduleItems) = GenerateTransactions(txnRng, meta, profile, now, homeLoanRepayment);
+            offsetEstimateByCustomer.TryGetValue(meta.CustomerId, out var offsetEstimate);
+            var (transactions, scheduleItems) = GenerateTransactions(
+                txnRng,
+                meta,
+                profile,
+                now,
+                homeLoanRepayment,
+                offsetEstimate);
             txnBuffer.AddRange(transactions);
             scheduledSeeds.AddRange(scheduleItems);
 
@@ -417,13 +430,14 @@ public static class SeedData
         AccountMeta meta,
         CustomerProfile profile,
         DateTime now,
-        decimal homeLoanRepayment)
+        decimal homeLoanRepayment,
+        decimal offsetEstimate)
     {
         return meta.AccountType switch
         {
             AccountType.Transaction => GenerateTransactionAccountTxns(rng, meta, profile, now, homeLoanRepayment),
             AccountType.Savings => (GenerateSavingsAccountTxns(rng, meta, profile, now), []),
-            AccountType.HomeLoan => (GenerateHomeLoanTxns(rng, meta, now), []),
+            AccountType.HomeLoan => (GenerateHomeLoanTxns(rng, meta, now, offsetEstimate), []),
             AccountType.Offset => (GenerateOffsetAccountTxns(rng, meta, profile, now), []),
             _ => ([], [])
         };
@@ -709,7 +723,7 @@ public static class SeedData
         return txns;
     }
 
-    private static List<Transaction> GenerateHomeLoanTxns(Random rng, AccountMeta meta, DateTime now)
+    private static List<Transaction> GenerateHomeLoanTxns(Random rng, AccountMeta meta, DateTime now, decimal offsetEstimate)
     {
         var txns = new List<Transaction>();
         var loanAmount = meta.LoanAmount ?? 450000m;
@@ -732,7 +746,8 @@ public static class SeedData
         {
             if (currentDate >= nextInterestDate)
             {
-                var interest = Math.Round(Math.Abs(balance) * rate / 100m / 12m, 2);
+                var interestBase = Math.Max(0, Math.Abs(balance) - offsetEstimate);
+                var interest = Math.Round(interestBase * rate / 100m / 12m, 2);
                 balance -= interest;
                 txns.Add(MakeTxn(meta.AccountId, -interest, "INTEREST CHARGED", TransactionType.Interest, nextInterestDate.AddHours(1)));
 
@@ -812,13 +827,41 @@ public static class SeedData
         return Math.Round(repayment, 2);
     }
 
+    private static decimal EstimateOffsetBalanceForInterest(CustomerProfile profile)
+    {
+        return profile.Persona.LifeStage switch
+        {
+            "Affluent Professional" => RoundTo(profile.IncomeAmount * 18m, 10m),
+            "Mortgage Family" => RoundTo(profile.IncomeAmount * 10m, 10m),
+            "Small Business Operator" => RoundTo(profile.IncomeAmount * 12m, 10m),
+            _ => RoundTo(profile.IncomeAmount * 8m, 10m)
+        };
+    }
+
     private static (string Description, decimal Amount) PickDebitTransaction(Random rng, double pubSpendLikelihood)
     {
-        var roll = rng.Next(100);
+        if (rng.NextDouble() < pubSpendLikelihood)
+        {
+            var pubPool = SpendingPools[3];
+            var pubMerchant = pubPool.Merchants[rng.Next(pubPool.Merchants.Length)];
+            var pubAmount = RoundTo(RandomDecimal(rng, pubPool.Min, pubPool.Max), 0.01m);
+            return (pubMerchant, pubAmount);
+        }
+
+        var nonPubWeight = 0;
+        for (int i = 0; i < SpendingPools.Length; i++)
+        {
+            if (i != 3)
+                nonPubWeight += SpendingPools[i].Weight;
+        }
+
+        var roll = rng.Next(nonPubWeight);
         var cumulative = 0;
 
-        foreach (var (weight, merchants, min, max) in SpendingPools)
+        for (int i = 0; i < SpendingPools.Length; i++)
         {
+            if (i == 3) continue;
+            var (weight, merchants, min, max) = SpendingPools[i];
             cumulative += weight;
             if (roll < cumulative)
             {
@@ -828,10 +871,7 @@ public static class SeedData
             }
         }
 
-        var fallbackAmount = RoundTo(RandomDecimal(rng, 8m, 40m), 0.01m);
-        if (rng.NextDouble() < pubSpendLikelihood)
-            return ("THE LOCAL HOTEL", fallbackAmount);
-        return ("COLES 0001", fallbackAmount);
+        return ("COLES 0001", RoundTo(RandomDecimal(rng, 8m, 40m), 0.01m));
     }
 
     private static DateTime StampAtNineAm(DateTime date, Random rng) =>
