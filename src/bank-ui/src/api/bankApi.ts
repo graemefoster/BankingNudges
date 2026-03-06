@@ -24,8 +24,14 @@ export function getCustomers(search?: string, page = 1, pageSize = 20, signal?: 
   return fetchJson<CustomerPage>(`${BASE}/customers?${params}`, signal ? { signal } : undefined);
 }
 
-export function getCustomerAccounts(customerId: string): Promise<Account[]> {
-  return fetchJson<Account[]>(`${BASE}/customers/${customerId}/accounts`);
+export function getCustomerAccounts(customerId: string, includeInactive = false): Promise<Account[]> {
+  const params = new URLSearchParams();
+  if (includeInactive) params.set('includeInactive', 'true');
+  const qs = params.toString();
+  const url = qs
+    ? `${BASE}/customers/${customerId}/accounts?${qs}`
+    : `${BASE}/customers/${customerId}/accounts`;
+  return fetchJson<Account[]>(url);
 }
 
 export function getAccount(accountId: string): Promise<Account> {

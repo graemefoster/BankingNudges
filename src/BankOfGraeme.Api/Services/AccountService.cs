@@ -11,8 +11,12 @@ public class AccountService(BankDbContext db, IDateTimeProvider dateTime)
     public async Task<Account?> GetAccountAsync(int id) =>
         await db.Accounts.Include(a => a.OffsetAccounts).FirstOrDefaultAsync(a => a.Id == id);
 
-    public async Task<List<Account>> GetCustomerAccountsAsync(int customerId) =>
-        await db.Accounts.Where(a => a.CustomerId == customerId && a.IsActive).OrderBy(a => a.AccountType).ToListAsync();
+    public async Task<List<Account>> GetCustomerAccountsAsync(int customerId, bool includeInactive = false) =>
+        await db.Accounts
+            .Where(a => a.CustomerId == customerId && (includeInactive || a.IsActive))
+            .OrderBy(a => a.AccountType)
+            .ThenBy(a => a.Id)
+            .ToListAsync();
 
     /// <summary>
     /// Available balance = ledger balance minus pending holds (unsigned pending withdrawal amounts).

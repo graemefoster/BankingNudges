@@ -49,7 +49,7 @@ public static class CustomerEndpoints
             return customer is null ? Results.NotFound() : Results.Ok(customer);
         });
 
-        group.MapGet("/{id:int}/accounts", async (int id, AccountService svc) =>
-            Results.Ok(await svc.GetCustomerAccountsAsync(id)));
+        group.MapGet("/{id:int}/accounts", async (int id, AccountService svc, bool includeInactive = false) =>
+            Results.Ok(await svc.GetCustomerAccountsAsync(id, includeInactive)));
     }
 }

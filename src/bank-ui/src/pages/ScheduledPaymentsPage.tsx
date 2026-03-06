@@ -15,6 +15,7 @@ import {
 } from '../api/bankApi';
 
 export default function ScheduledPaymentsPage() {
+  const [allAccounts, setAllAccounts] = useState<Account[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [payments, setPayments] = useState<Record<string, ScheduledPayment[]>>({});
   const [loading, setLoading] = useState(true);
@@ -32,13 +33,14 @@ export default function ScheduledPaymentsPage() {
     }
     setLoading(true);
     try {
-      const accs = await getCustomerAccounts(customerId);
-      const sendable = accs.filter((a) => a.accountType !== AccountType.HomeLoan);
-      setAccounts(sendable);
+      const accs = await getCustomerAccounts(customerId, true);
+      setAllAccounts(accs);
+      const createEligible = accs.filter((a) => a.accountType !== AccountType.HomeLoan && a.isActive !== false);
+      setAccounts(createEligible);
 
       const allPayments: Record<string, ScheduledPayment[]> = {};
       await Promise.all(
-        sendable.map(async (a) => {
+        accs.map(async (a) => {
           const sp = await getScheduledPayments(a.id);
           if (sp.length > 0) allPayments[a.id] = sp;
         }),
@@ -84,6 +86,7 @@ export default function ScheduledPaymentsPage() {
         <h2 className="text-xl font-bold text-text-primary">Scheduled Payments</h2>
         <button
           onClick={() => setShowCreate(true)}
+          disabled={accounts.length === 0}
           className="bg-gradient-to-r from-accent-teal to-accent-cyan text-white text-sm font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
         >
           + New
@@ -100,6 +103,11 @@ export default function ScheduledPaymentsPage() {
           {success}
         </div>
       )}
+      {accounts.length === 0 && (
+        <div className="bg-dark-surface border border-border text-text-secondary rounded-lg px-4 py-3 mb-4 text-sm">
+          No eligible active source accounts available for creating new scheduled payments.
+        </div>
+      )}
 
       {!hasPayments ? (
         <div className="text-center py-16">
@@ -110,12 +118,13 @@ export default function ScheduledPaymentsPage() {
       ) : (
         <div className="space-y-6">
           {allPayments.map(([accountId, sp]) => {
-            const account = accounts.find((a) => a.id === accountId);
+            const account = allAccounts.find((a) => a.id === accountId);
             if (!account || sp.length === 0) return null;
             return (
               <div key={accountId}>
                 <div className="text-xs text-text-secondary mb-2 font-medium">
                   {account.name} ({accountTypeLabel[account.accountType]})
+                  {account.isActive === false ? ' — Closed' : ''}
                 </div>
                 <div className="space-y-2">
                   {sp.map((p) => (
