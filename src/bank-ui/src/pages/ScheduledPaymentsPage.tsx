@@ -42,7 +42,7 @@ export default function ScheduledPaymentsPage() {
       await Promise.all(
         accs.map(async (a) => {
           const sp = await getScheduledPayments(a.id);
-          if (sp.length > 0) allPayments[a.id] = sp;
+          if (sp.length > 0) allPayments[String(a.id)] = sp;
         }),
       );
       setPayments(allPayments);
@@ -118,7 +118,7 @@ export default function ScheduledPaymentsPage() {
       ) : (
         <div className="space-y-6">
           {allPayments.map(([accountId, sp]) => {
-            const account = allAccounts.find((a) => a.id === accountId);
+            const account = allAccounts.find((a) => String(a.id) === accountId);
             if (!account || sp.length === 0) return null;
             return (
               <div key={accountId}>
