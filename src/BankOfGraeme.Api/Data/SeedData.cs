@@ -108,6 +108,20 @@ public static class SeedData
         new("Pensioner Retiree", 7, 66, 83, 1700m, 3200m, IncomeFrequency.Fortnightly, HousingType.OwnedOutright, false, 0.14, false, false, 0.18)
     ];
 
+    private static readonly SpotlightCustomer[] SpotlightCustomers =
+    [
+        new("Lily", "Nguyen", "Teen Starter", 16, 45),
+        new("Noah", "Patel", "Uni Student", 21, 240),
+        new("Chloe", "Martin", "Early Worker", 27, 365),
+        new("Ethan", "Ross", "Young Professional", 33, 730),
+        new("Grace", "Turner", "Family Renter", 39, 1095),
+        new("Jack", "O'Connor", "Mortgage Family", 45, 1280),
+        new("Amelia", "Chen", "Affluent Professional", 41, 980),
+        new("Marcus", "Kelly", "Small Business Operator", 52, 540),
+        new("Zoe", "Adams", "Financially Stretched", 34, 35),
+        new("Gabriel", "White", "Pensioner Retiree", 74, 1680)
+    ];
+
     public static void Seed(BankDbContext db, IDateTimeProvider dateTime)
     {
         if (!db.StaffUsers.Any())
@@ -277,17 +291,21 @@ public static class SeedData
 
     private static CustomerProfile CreateCustomerProfile(Random rng, int index, DateTime now)
     {
-        var persona = PickPersona(rng);
-        var age = rng.Next(persona.MinAge, persona.MaxAge + 1);
+        var spotlight = index < SpotlightCustomers.Length ? SpotlightCustomers[index] : null;
+        var persona = spotlight is not null
+            ? Personas.First(p => p.LifeStage == spotlight.LifeStage)
+            : PickPersona(rng);
+
+        var age = spotlight?.Age ?? rng.Next(persona.MinAge, persona.MaxAge + 1);
         var dobYear = now.Year - age;
         var dobMonth = rng.Next(1, 13);
         var dobDay = rng.Next(1, DateTime.DaysInMonth(dobYear, dobMonth) + 1);
 
-        var firstName = FirstNames[rng.Next(FirstNames.Length)];
-        var lastName = LastNames[rng.Next(LastNames.Length)];
+        var firstName = spotlight?.FirstName ?? FirstNames[rng.Next(FirstNames.Length)];
+        var lastName = spotlight?.LastName ?? LastNames[rng.Next(LastNames.Length)];
 
         var salary = RoundTo(RandomDecimal(rng, persona.IncomeMin, persona.IncomeMax), 50m);
-        var tenureDays = PickTenureDays(rng, persona.LifeStage);
+        var tenureDays = spotlight?.TenureDays ?? PickTenureDays(rng, persona.LifeStage);
         var binge = rng.NextDouble() < 0.35;
         var bingeService = binge ? Streamers[rng.Next(Streamers.Length)].Payee : null;
         var bingeMonths = binge ? rng.Next(2, 5) : 0;
@@ -1082,6 +1100,13 @@ public static class SeedData
         bool HasCoreUtilities,
         bool HasSubscriptions,
         double PubSpendLikelihood);
+
+    private sealed record SpotlightCustomer(
+        string FirstName,
+        string LastName,
+        string LifeStage,
+        int Age,
+        int TenureDays);
 
     private sealed record CustomerProfile(
         Customer Customer,

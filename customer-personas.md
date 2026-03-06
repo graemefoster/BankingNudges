@@ -1,10 +1,10 @@
 # Bank of Graeme — Seeded Customer Personas (Featured 10 of 1,000)
 
-These are 10 representative customers sampled from the seeded 1,000-user dataset. They are intended to showcase life-stage variety, realistic obligations, and statement-style transaction patterns.
+These are 10 representative customers from the seeded 1,000-user dataset. The names shown below are anchored in seed generation, so you can search these exact customers in the app.
 
 ---
 
-## 1) Teen Starter (16)
+## 1) Teen Starter — Lily Nguyen (16)
 
 - **Bank tenure:** ~1-2 months
 - **Accounts:** Everyday Transaction
@@ -16,7 +16,7 @@ These are 10 representative customers sampled from the seeded 1,000-user dataset
   - `THE COFFEE BEAN`
 - **Behaviour notes:** Light discretionary spend, frequent small card purchases, no rent/mortgage.
 
-## 2) Uni Student (21)
+## 2) Uni Student — Noah Patel (21)
 
 - **Bank tenure:** ~8 months
 - **Accounts:** Everyday Transaction + Goal Saver
@@ -29,7 +29,7 @@ These are 10 representative customers sampled from the seeded 1,000-user dataset
   - `TRANSFER FROM SAVINGS`
 - **Behaviour notes:** Tight cash cycles around payday with occasional rescue transfers.
 
-## 3) Early Worker (27)
+## 3) Early Worker — Chloe Martin (27)
 
 - **Bank tenure:** ~1 year
 - **Accounts:** Everyday Transaction + Bonus Saver
@@ -42,7 +42,7 @@ These are 10 representative customers sampled from the seeded 1,000-user dataset
   - `THE OXFORD TAVERN`
 - **Behaviour notes:** Mix of supermarket spend and pub/social spending.
 
-## 4) Young Professional (33)
+## 4) Young Professional — Ethan Ross (33)
 
 - **Bank tenure:** ~2 years
 - **Accounts:** Everyday Transaction + Future Saver
@@ -56,7 +56,7 @@ These are 10 representative customers sampled from the seeded 1,000-user dataset
   - `CARD PURCHASE BINGE AU`
 - **Behaviour notes:** Heavy convenience/transport spend, bursty entertainment subscriptions.
 
-## 5) Family Renter (39)
+## 5) Family Renter — Grace Turner (39)
 
 - **Bank tenure:** ~3 years
 - **Accounts:** Everyday Transaction + Rainy Day Fund
@@ -69,7 +69,7 @@ These are 10 representative customers sampled from the seeded 1,000-user dataset
   - `DIRECT DEBIT - DISNEY+`
 - **Behaviour notes:** High supermarket/family retail volume with stable recurring bills.
 
-## 6) Mortgage Family (45)
+## 6) Mortgage Family — Jack O'Connor (45)
 
 - **Bank tenure:** ~3-4 years
 - **Accounts:** Everyday Transaction + Home Loan + Offset + Goal Saver
@@ -82,7 +82,7 @@ These are 10 representative customers sampled from the seeded 1,000-user dataset
   - `EXTRA REPAYMENT`
 - **Behaviour notes:** Offset sweeps and mortgage acceleration behaviour.
 
-## 7) Affluent Professional (41)
+## 7) Affluent Professional — Amelia Chen (41)
 
 - **Bank tenure:** ~2-3 years
 - **Accounts:** Everyday Transaction + Home Loan + Offset + Bonus Saver
@@ -95,7 +95,7 @@ These are 10 representative customers sampled from the seeded 1,000-user dataset
   - `THE ROYAL HOTEL SYDNEY`
 - **Behaviour notes:** Large balances, active offset optimization, discretionary spend without cash stress.
 
-## 8) Small Business Operator (52)
+## 8) Small Business Operator — Marcus Kelly (52)
 
 - **Bank tenure:** ~18 months
 - **Accounts:** Everyday Transaction + Home Loan + Offset
@@ -108,7 +108,7 @@ These are 10 representative customers sampled from the seeded 1,000-user dataset
   - `WILSON PARKING`
 - **Behaviour notes:** Uneven inflows, frequent transfers between transaction and offset.
 
-## 9) Financially Stretched (34)
+## 9) Financially Stretched — Zoe Adams (34)
 
 - **Bank tenure:** ~1 month
 - **Accounts:** Everyday Transaction (sometimes small saver)
@@ -121,7 +121,7 @@ These are 10 representative customers sampled from the seeded 1,000-user dataset
   - `TRANSFER FROM SAVINGS`
 - **Behaviour notes:** Narrow safe-to-spend margin, balance often recovers near payday.
 
-## 10) Pensioner Retiree (74)
+## 10) Pensioner Retiree — Gabriel White (74)
 
 - **Bank tenure:** ~4+ years
 - **Accounts:** Everyday Transaction + Goal Saver
