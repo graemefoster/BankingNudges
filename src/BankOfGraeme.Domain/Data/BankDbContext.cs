@@ -24,6 +24,7 @@ public class BankDbContext : DbContext
     public DbSet<AccountBalanceSnapshot> AccountBalanceSnapshots => Set<AccountBalanceSnapshot>();
     public DbSet<SystemSettings> SystemSettings => Set<SystemSettings>();
     public DbSet<ScheduledPayment> ScheduledPayments => Set<ScheduledPayment>();
+    public DbSet<Nudge> Nudges => Set<Nudge>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
@@ -187,6 +188,24 @@ public class BankDbContext : DbContext
 
             e.HasIndex(sp => new { sp.NextDueDate, sp.IsActive });
             e.HasIndex(sp => sp.AccountId);
+        });
+
+        modelBuilder.Entity<Nudge>(e =>
+        {
+            e.HasKey(n => n.Id);
+            e.Property(n => n.Message).HasMaxLength(1000);
+            e.Property(n => n.Cta).HasMaxLength(100);
+            e.Property(n => n.Urgency).HasConversion<string>().HasMaxLength(10);
+            e.Property(n => n.Category).HasConversion<string>().HasMaxLength(20);
+            e.Property(n => n.Reasoning).HasMaxLength(1000);
+            e.Property(n => n.Status).HasConversion<string>().HasMaxLength(20);
+
+            e.HasOne(n => n.Customer)
+                .WithMany()
+                .HasForeignKey(n => n.CustomerId);
+
+            e.HasIndex(n => new { n.CustomerId, n.Status });
+            e.HasIndex(n => n.CreatedAt);
         });
     }
 }

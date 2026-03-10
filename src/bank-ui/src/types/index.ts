@@ -124,3 +124,17 @@ export interface PayeeLookup {
   accountTypeName: string;
   customerName: string;
 }
+
+export interface NudgeDto {
+  id: number;
+  message: string;
+  cta: string;
+  urgency: 'HIGH' | 'MEDIUM' | 'LOW';
+  category: 'CASHFLOW' | 'SAVINGS' | 'SPENDING' | 'UPCOMING_PAYMENT';
+}
+
+export interface NudgeGenerateResult {
+  generated: boolean;
+  nudge: NudgeDto | null;
+  reason: string | null;
+}

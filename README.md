@@ -76,6 +76,7 @@ The frontend runs at **http://localhost:5173** and proxies `/api` to the backend
 | Nightly Batch | Azure Functions (isolated worker) |
 | Frontend | React 19 + TypeScript + Vite |
 | CRM Frontend | React 19 + TypeScript + Vite (separate app) |
+| AI Nudges | Azure OpenAI (Responses API) via openai-dotnet SDK |
 | Styling | Tailwind CSS v4 |
 | Routing | React Router |
 
@@ -144,3 +145,47 @@ The CRM is a separate internal app for bank staff at **http://localhost:5174**.
 | Muted Green | `#63A376` | Secondary elements |
 | Light Green | `#AAD7B2` | Backgrounds, highlights |
 | Orange/Coral | `#F07954` | Warnings, destructive actions |
+
+## Proactive Nudges (AI)
+
+The nudge system uses Azure OpenAI to analyse customer financial data and generate personalised nudges before customers encounter problems.
+
+### Architecture
+
+```
+Pattern Detector  → detects recurring payments from transaction history
+Signal Detector   → rules-based flags (low balance, spend spike, upcoming payment)
+Context Assembler → builds rich financial snapshot per customer
+Nudge Generator   → calls Azure OpenAI Responses API, validates output
+Batch Runner      → orchestrates per-customer, sequential processing
+Nightly Service   → expires stale nudges + generates fresh ones during rollover
+```
+
+### Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **PENDING nudges expire after 3 days** | A nudge saying "rent due in 2 days" becomes misleading after the payment date. Context changes daily, so stale nudges risk being inaccurate. Expired nudges are marked EXPIRED (not deleted) for audit. |
+| **Signals are not persisted** | Signals are derived from current state (balance, transactions, upcoming). Storing them would create stale data. The `context_snapshot` on each nudge captures signals at generation time for audit. |
+| **Max 3 nudges per customer per 7-day window** | Prevents notification fatigue. Checked before calling the LLM. |
+| **Hallucination check on all $ amounts** | Every dollar figure in the LLM response is verified against the context data. Nudges with invented numbers are rejected. |
+| **Nudge processing runs via API, not nightly rollover** | LLM calls are slow and external — they don't belong in the financial processing pipeline. Use `POST /api/nudges/batch/run` to generate nudges on-demand or via a separate schedule. |
+
+### Configuration
+
+| Setting | Description |
+|---------|-------------|
+| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI resource endpoint (required) |
+| `AZURE_OPENAI_DEPLOYMENT` | Model deployment name (default: `gpt-4o`) |
+
+Authentication uses `DefaultAzureCredential` — no API key needed when running with Azure CLI or Managed Identity.
+
+### Nudge API
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/nudges/{customerId}` | GET | Latest PENDING nudge for a customer |
+| `/api/nudges/{nudgeId}/respond` | POST | Respond: `ACCEPTED`, `DISMISSED`, `SNOOZED` |
+| `/api/nudges/batch/run` | POST | Trigger batch `{ sampleSize?, customerIds? }` |
+| `/api/nudges/{customerId}/history` | GET | Last 10 nudges with outcomes |
+| `/api/customers/{customerId}/context` | GET | Raw context sent to LLM (debug) |

@@ -1,8 +1,14 @@
+using Azure.Identity;
 using BankOfGraeme.Api.Data;
 using BankOfGraeme.Api.Endpoints;
 using BankOfGraeme.Api.Services;
 using Microsoft.EntityFrameworkCore;
+using OpenAI;
+using OpenAI.Responses;
+using System.ClientModel.Primitives;
 using System.Text.Json.Serialization;
+
+#pragma warning disable OPENAI001 // Experimental API
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +19,23 @@ builder.Services.AddDbContext<BankDbContext>(options =>
 builder.Services.AddScoped<IDateTimeProvider, DatabaseDateTimeProvider>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<StaffAuthService>();
+builder.Services.AddScoped<NudgePatternDetector>();
+builder.Services.AddScoped<NudgeSignalDetector>();
+builder.Services.AddScoped<NudgeContextAssembler>();
+builder.Services.AddScoped<NudgeGenerator>();
+builder.Services.AddSingleton(new NudgeGeneratorSettings(
+    builder.Configuration["AZURE_OPENAI_DEPLOYMENT"] ?? "gpt-4o"));
+builder.Services.AddScoped<NudgeBatchRunner>();
+
+builder.Services.AddSingleton<ResponsesClient>(_ =>
+{
+    var endpoint = builder.Configuration["AZURE_OPENAI_ENDPOINT"]
+        ?? throw new InvalidOperationException("AZURE_OPENAI_ENDPOINT is required");
+
+    return new ResponsesClient(
+        new BearerTokenPolicy(new DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"),
+        new OpenAIClientOptions { Endpoint = new Uri($"{endpoint.TrimEnd('/')}/openai/v1/") });
+});
 
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
@@ -53,5 +76,8 @@ app.MapCrmScheduledPaymentEndpoints();
 
 // Time travel
 app.MapTimeTravelEndpoints();
+
+// Nudges
+app.MapNudgeEndpoints();
 
 app.Run();

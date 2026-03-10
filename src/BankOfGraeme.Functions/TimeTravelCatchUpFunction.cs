@@ -75,7 +75,10 @@ public class TimeTravelCatchUpFunction(
             // 4. Create EOD balance snapshots for all active accounts
             await settlementService.CreateBalanceSnapshotsAsync(date);
 
-            // 5. Update checkpoint
+            await txn.CommitAsync();
+
+            // 5. Update checkpoint (separate transaction since we committed above)
+            await using var checkpointTxn = await db.Database.BeginTransactionAsync();
             var checkpoint = await db.SystemSettings
                 .FirstOrDefaultAsync(s => s.Key == "LastProcessedDate");
 
@@ -93,7 +96,7 @@ public class TimeTravelCatchUpFunction(
             }
 
             await db.SaveChangesAsync();
-            await txn.CommitAsync();
+            await checkpointTxn.CommitAsync();
         }
 
         logger.LogInformation("Time-travel catch-up complete. LastProcessedDate = {Date}", virtualToday);

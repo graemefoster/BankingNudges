@@ -128,3 +128,17 @@ export function cancelScheduledPayment(id: number) {
     method: 'DELETE',
   });
 }
+
+export function generateNudge(customerId: string): Promise<import('../types').NudgeGenerateResult> {
+  return fetchJson<import('../types').NudgeGenerateResult>(`${BASE}/nudges/generate/${customerId}`, {
+    method: 'POST',
+  });
+}
+
+export function respondToNudge(nudgeId: number, action: string): Promise<void> {
+  return fetchJson<void>(`${BASE}/nudges/${nudgeId}/respond`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action }),
+  });
+}
