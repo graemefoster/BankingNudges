@@ -21,7 +21,8 @@ public record AccountInfo(
     string AccountType,
     decimal Balance,
     decimal? InterestRate,
-    decimal? BonusInterestRate);
+    decimal? BonusInterestRate,
+    decimal? OffsetHomeLoanRate = null);
 
 public record FinancialInfo(
     decimal CurrentBalance,
@@ -121,12 +122,23 @@ public class NudgeContextAssembler(
 
         var accountInfos = accounts
             .Where(a => a.AccountType is AccountType.Transaction or AccountType.Savings or AccountType.Offset)
-            .Select(a => new AccountInfo(
-                a.Name,
-                a.AccountType.ToString(),
-                a.Balance,
-                a.InterestRate,
-                a.BonusInterestRate))
+            .Select(a =>
+            {
+                decimal? offsetHomeLoanRate = null;
+                if (a.AccountType == AccountType.Offset && a.HomeLoanAccountId.HasValue)
+                {
+                    var linkedLoan = accounts.FirstOrDefault(l => l.Id == a.HomeLoanAccountId.Value);
+                    offsetHomeLoanRate = linkedLoan?.InterestRate;
+                }
+
+                return new AccountInfo(
+                    a.Name,
+                    a.AccountType.ToString(),
+                    a.Balance,
+                    a.InterestRate,
+                    a.BonusInterestRate,
+                    offsetHomeLoanRate);
+            })
             .ToList();
 
         return new CustomerContext(

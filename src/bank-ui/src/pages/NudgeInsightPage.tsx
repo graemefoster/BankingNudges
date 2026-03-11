@@ -404,6 +404,10 @@ function annualInterest(balance: number, rate: number | null, bonusRate: number 
   return balance * totalRate / 100;
 }
 
+function offsetSavings(balance: number, homeLoanRate: number): number {
+  return balance * homeLoanRate / 100;
+}
+
 function SavingsSection({ context }: { context: NudgeInsightResponse['context'] }) {
   const { financial } = context;
   const accounts = financial.accounts ?? [];
@@ -419,8 +423,13 @@ function SavingsSection({ context }: { context: NudgeInsightResponse['context'] 
     ? (bestSavingsAccount.interestRate ?? 0) + (bestSavingsAccount.bonusInterestRate ?? 0)
     : null;
 
-  const totalAnnualInterest = accounts.reduce(
-    (sum, a) => sum + annualInterest(a.balance, a.interestRate, a.bonusInterestRate), 0);
+  // Total annual benefit: interest earned + loan interest saved by offsets
+  const totalAnnualBenefit = accounts.reduce((sum, a) => {
+    if (a.accountType === 'Offset' && a.offsetHomeLoanRate != null) {
+      return sum + offsetSavings(a.balance, a.offsetHomeLoanRate);
+    }
+    return sum + annualInterest(a.balance, a.interestRate, a.bonusInterestRate);
+  }, 0);
 
   return (
     <div className="mb-6">
@@ -433,9 +442,15 @@ function SavingsSection({ context }: { context: NudgeInsightResponse['context'] 
           <div className="space-y-2">
             <p className="text-xs text-text-muted uppercase tracking-wide mb-1">Your Accounts</p>
             {accounts.map((acct) => {
+              const isOffset = acct.accountType === 'Offset' && acct.offsetHomeLoanRate != null;
               const totalRate = (acct.interestRate ?? 0) + (acct.bonusInterestRate ?? 0);
-              const earning = annualInterest(acct.balance, acct.interestRate, acct.bonusInterestRate);
-              const couldEarnMore = bestSavingsRate != null
+              const earning = isOffset
+                ? offsetSavings(acct.balance, acct.offsetHomeLoanRate!)
+                : annualInterest(acct.balance, acct.interestRate, acct.bonusInterestRate);
+
+              // Only suggest "could earn more" for non-Offset, non-Savings accounts
+              const couldEarnMore = !isOffset
+                && bestSavingsRate != null
                 && acct.accountType !== 'Savings'
                 && totalRate < bestSavingsRate
                 && acct.balance > 0;
@@ -448,20 +463,27 @@ function SavingsSection({ context }: { context: NudgeInsightResponse['context'] 
                     <div>
                       <p className="text-sm font-semibold text-text-primary">{acct.name}</p>
                       <p className="text-xs text-text-muted">
-                        {acct.accountType}
-                        {acct.interestRate != null && ` · ${acct.interestRate.toFixed(2)}% p.a.`}
-                        {acct.bonusInterestRate != null && ` + ${acct.bonusInterestRate.toFixed(2)}% bonus`}
+                        {isOffset
+                          ? `Offset · reducing home loan interest at ${acct.offsetHomeLoanRate!.toFixed(2)}%`
+                          : <>
+                              {acct.accountType}
+                              {acct.interestRate != null && ` · ${acct.interestRate.toFixed(2)}% p.a.`}
+                              {acct.bonusInterestRate != null && ` + ${acct.bonusInterestRate.toFixed(2)}% bonus`}
+                            </>
+                        }
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-bold text-text-primary tabular-nums">
                         {formatCurrency(acct.balance)}
                       </p>
-                      {totalRate > 0 && (
-                        <p className="text-xs text-text-muted tabular-nums">
-                          earning ~{formatCurrency(earning)}/yr
-                        </p>
-                      )}
+                      <p className="text-xs text-text-muted tabular-nums">
+                        {isOffset
+                          ? `saving ~${formatCurrency(earning)}/yr`
+                          : totalRate > 0
+                            ? `earning ~${formatCurrency(earning)}/yr`
+                            : null}
+                      </p>
                     </div>
                   </div>
                   {couldEarnMore && extraEarnings > 10 && (
@@ -475,7 +497,7 @@ function SavingsSection({ context }: { context: NudgeInsightResponse['context'] 
             <div className="bg-dark-surface rounded-lg p-3 flex items-center justify-between border-t border-border">
               <div>
                 <p className="text-sm font-semibold text-text-secondary">Total Usable Balance</p>
-                <p className="text-xs text-text-muted">Earning ~{formatCurrency(totalAnnualInterest)}/yr across all accounts</p>
+                <p className="text-xs text-text-muted">Interest earned + loan interest saved: ~{formatCurrency(totalAnnualBenefit)}/yr</p>
               </div>
               <p className="text-sm font-extrabold text-accent-teal tabular-nums">
                 {formatCurrency(financial.currentBalance)}

@@ -164,6 +164,7 @@ export interface NudgeInsightAccount {
   balance: number;
   interestRate: number | null;
   bonusInterestRate: number | null;
+  offsetHomeLoanRate: number | null;
 }
 
 export interface NudgeInsightFinancial {

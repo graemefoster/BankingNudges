@@ -131,7 +131,10 @@ public class NudgeGenerator(
             {
                 var rate = a.InterestRate.HasValue ? $"{a.InterestRate:F2}% p.a." : "n/a";
                 var bonus = a.BonusInterestRate.HasValue ? $" + {a.BonusInterestRate:F2}% bonus" : "";
-                return $"  {a.Name} ({a.AccountType}): ${a.Balance:F2} — interest {rate}{bonus}";
+                var offsetNote = a.OffsetHomeLoanRate.HasValue
+                    ? $" (offsets home loan at {a.OffsetHomeLoanRate:F2}% — this balance reduces loan interest instead of earning interest)"
+                    : "";
+                return $"  {a.Name} ({a.AccountType}): ${a.Balance:F2} — interest {rate}{bonus}{offsetNote}";
             }));
 
         var spendLines = string.Join("\n",
