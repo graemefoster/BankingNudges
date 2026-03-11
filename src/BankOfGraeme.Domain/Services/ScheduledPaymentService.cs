@@ -86,9 +86,10 @@ public class ScheduledPaymentService(BankDbContext db, ILogger<ScheduledPaymentS
                         {
                             AccountId = payment.AccountId,
                             Amount = 0,
-                            Description = $"Declined - Insufficient funds: {description}",
+                            Description = description,
                             TransactionType = TransactionType.DirectDebit,
-                            Status = TransactionStatus.Reversed,
+                            Status = TransactionStatus.Failed,
+                            FailureReason = "Insufficient funds",
                             CreatedAt = settledAt,
                         });
 

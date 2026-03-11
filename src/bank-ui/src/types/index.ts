@@ -4,6 +4,7 @@ export interface Customer {
   lastName: string;
   email: string;
   fullName: string;
+  persona: string | null;
   accountCount: number;
 }
 
@@ -41,6 +42,7 @@ export const TransactionStatus = {
   Pending: 0,
   Settled: 1,
   Reversed: 2,
+  Failed: 3,
 } as const;
 export type TransactionStatus = (typeof TransactionStatus)[keyof typeof TransactionStatus];
 
@@ -50,6 +52,7 @@ export interface Transaction {
   description: string;
   transactionType: TransactionType;
   status: TransactionStatus;
+  failureReason: string | null;
   settledAt: string | null;
   createdAt: string;
 }

@@ -34,6 +34,7 @@ public static class CustomerEndpoints
                 {
                     c.Id, c.FirstName, c.LastName, c.Email,
                     FullName = c.FirstName + " " + c.LastName,
+                    c.Persona,
                     AccountCount = c.Accounts.Count
                 })
                 .ToListAsync();

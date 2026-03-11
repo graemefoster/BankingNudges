@@ -23,6 +23,10 @@ public class InterestCalculationService(BankDbContext db, ILogger<InterestCalcul
             .Where(a => a.IsActive && a.AccountType == AccountType.Savings && a.InterestRate != null)
             .ToListAsync();
 
+        var transactionAccounts = await db.Accounts
+            .Where(a => a.IsActive && a.AccountType == AccountType.Transaction && a.InterestRate != null)
+            .ToListAsync();
+
         var existingAccruals = await db.InterestAccruals
             .Where(ia => ia.AccrualDate == accrualDate)
             .Select(ia => ia.AccountId)
@@ -67,6 +71,27 @@ public class InterestCalculationService(BankDbContext db, ILogger<InterestCalcul
             var dailyInterest = balance * dailyRate;
 
             // Savings interest is earned (positive amount)
+            db.InterestAccruals.Add(new InterestAccrual
+            {
+                AccountId = account.Id,
+                AccrualDate = accrualDate,
+                DailyAmount = dailyInterest,
+                Posted = false
+            });
+            accrued++;
+        }
+
+        // Transaction accounts earn interest on positive balance (same logic as savings)
+        foreach (var account in transactionAccounts)
+        {
+            if (existingAccruals.Contains(account.Id)) continue;
+
+            var balance = Math.Max(0, account.Balance);
+            if (balance == 0) continue;
+
+            var dailyRate = account.InterestRate!.Value / 100m / 365m;
+            var dailyInterest = balance * dailyRate;
+
             db.InterestAccruals.Add(new InterestAccrual
             {
                 AccountId = account.Id,

@@ -97,7 +97,12 @@ export default function LoginPage() {
                     <p className="font-semibold text-text-primary">{c.fullName}</p>
                     <p className="text-xs text-text-secondary mt-0.5">{c.email}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex flex-col items-end gap-1">
+                    {c.persona && (
+                      <span className="text-xs bg-accent-amber/15 text-accent-amber px-2 py-0.5 rounded-full font-medium">
+                        {c.persona}
+                      </span>
+                    )}
                     <span className="text-xs bg-accent-teal/15 text-accent-teal px-2 py-1 rounded-full font-medium">
                       {c.accountCount} account{c.accountCount !== 1 ? 's' : ''}
                     </span>

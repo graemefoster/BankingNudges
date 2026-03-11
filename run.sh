@@ -95,12 +95,6 @@ cd "$SCRIPT_DIR/src/BankOfGraeme.Functions/bin/Debug/net10.0"
 func start --no-build --port 7071 &
 FUNC_PID=$!
 
-# 8. Start MCP Server
-echo "🤖 Starting MCP Server on http://localhost:8080..."
-cd "$SCRIPT_DIR/src/bank-mcp"
-python3 -m bank_mcp.server &
-MCP_PID=$!
-
 echo ""
 echo "════════════════════════════════════════"
 echo "  🏦 Bank of Graeme is running!"
@@ -108,7 +102,6 @@ echo "  UI:        http://localhost:5173"
 echo "  CRM:       http://localhost:5174"
 echo "  API:       http://localhost:5225"
 echo "  Functions: http://localhost:7071"
-echo "  MCP:       http://localhost:8080"
 echo "  API docs:  http://localhost:5225/openapi/v1.json"
 echo "════════════════════════════════════════"
 echo "  Press Ctrl+C to stop"

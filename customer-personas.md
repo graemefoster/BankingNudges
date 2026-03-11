@@ -1,145 +1,118 @@
-# Bank of Graeme — Seeded Customer Personas (Featured 10 of 1,000)
+# Bank of Graeme — Seeded Customer Personas (Featured 8 of 150)
 
-These are 10 representative customers from the seeded 1,000-user dataset. The names shown below are anchored in seed generation, so you can search these exact customers in the app.
+These are 8 spotlight customers from the seeded 150-customer dataset. All customers have a single **Everyday Transaction** account with 3% p.a. interest (accrued daily, paid monthly). The bank opened on **2 July 2023**.
+
+The persona is stored on each customer record and visible in the CRM.
 
 ---
 
-## 1) Teen Starter — Lily Nguyen (16)
+## 1) Student — Lily Nguyen (17)
 
-- **Bank tenure:** ~1-2 months
-- **Accounts:** Everyday Transaction
-- **Income pattern:** Weekly casual wages
-- **Typical statement lines:**
-  - `SALARY CREDIT`
-  - `MCDONALD'S 317 SYDNEY`
-  - `OPAL TOP UP`
-  - `THE COFFEE BEAN`
-- **Behaviour notes:** Light discretionary spend, frequent small card purchases, no rent/mortgage.
+- **Bank tenure:** ~2 months
+- **Account:** Everyday Transaction
+- **Income:** Weekly casual wages ($280–580)
+- **Typical employers:** McDonald's, Woolworths, KFC, Subway
+- **Spending:** Fast food, Opal top-up, small retail, coffee
+- **Subscriptions:** Up to 2 (Spotify, Netflix, etc.)
+- **Mobile:** Vodafone budget plan ($30–55/mo)
+- **Car insurance:** Unlikely (15% chance, 3rd party ~$30–40/mo)
+- **Rent:** Occasional shared ($0–200/wk, 30% chance)
 
-## 2) Uni Student — Noah Patel (21)
+## 2) Zero-Hours Worker — Noah Patel (22)
 
-- **Bank tenure:** ~8 months
-- **Accounts:** Everyday Transaction + Goal Saver
-- **Income pattern:** Fortnightly part-time pay
-- **Scheduled payments:** Shared rent (weekly), telco (monthly), one streaming service
-- **Typical statement lines:**
-  - `OSKO PAYMENT - RENT`
-  - `DIRECT DEBIT - VODAFONE`
-  - `UBER EATS SYDNEY`
-  - `TRANSFER FROM SAVINGS`
-- **Behaviour notes:** Tight cash cycles around payday with occasional rescue transfers.
+- **Bank tenure:** ~9 months
+- **Account:** Everyday Transaction
+- **Income:** Weekly variable ($350–900, high variance)
+- **Typical employers:** Hospitality, retail, gig work
+- **Spending:** Groceries, dining, transport
+- **Subscriptions:** Up to 2
+- **Mobile:** Optus mid-plan ($40–65/mo)
+- **Car insurance:** Sometimes (40% chance, 3rd party ~$35–55/mo)
+- **Rent:** Usually shared ($200–350/wk, 85% chance)
 
-## 3) Early Worker — Chloe Martin (27)
+## 3) Young Professional — Chloe Martin (28)
 
-- **Bank tenure:** ~1 year
-- **Accounts:** Everyday Transaction + Bonus Saver
-- **Income pattern:** Fortnightly wages
-- **Scheduled payments:** Rent, utilities, 2-3 subscriptions
-- **Typical statement lines:**
-  - `DIRECT DEBIT - AGL ENERGY`
-  - `DIRECT DEBIT - NETFLIX`
-  - `WOOLWORTHS 0942 SYDNEY`
-  - `THE OXFORD TAVERN`
-- **Behaviour notes:** Mix of supermarket spend and pub/social spending.
+- **Bank tenure:** ~13 months
+- **Account:** Everyday Transaction
+- **Income:** Fortnightly salary ($2,500–3,500)
+- **Spending:** Restaurants, Uber, coffee, retail, groceries
+- **Subscriptions:** Up to 3 (Netflix, Stan, Spotify, etc.)
+- **Mobile:** Any provider ($55–90/mo)
+- **Car insurance:** Likely (70% chance, comprehensive $80–140/mo)
+- **Utilities:** AGL/Origin quarterly, Sydney Water
+- **Rent:** $700–1,100/fortnight (95% chance)
 
-## 4) Young Professional — Ethan Ross (33)
+## 4) Established Professional — Ethan Ross (42)
 
 - **Bank tenure:** ~2 years
-- **Accounts:** Everyday Transaction + Future Saver
-- **Income pattern:** Fortnightly salary
-- **Scheduled payments:** Rent + utilities + subscriptions
-- **Ad hoc binge example:** `CARD PURCHASE BINGE AU` for 2-3 month windows
-- **Typical statement lines:**
-  - `SALARY CREDIT`
-  - `DIRECT DEBIT - TELSTRA`
-  - `UBER *TRIP`
-  - `CARD PURCHASE BINGE AU`
-- **Behaviour notes:** Heavy convenience/transport spend, bursty entertainment subscriptions.
+- **Account:** Everyday Transaction
+- **Income:** Fortnightly salary ($3,500–5,500)
+- **Spending:** Higher dining, retail, home improvement
+- **Subscriptions:** Up to 3 (Netflix, Stan, Disney+, etc.)
+- **Mobile:** Often Telstra ($55–90/mo)
+- **Car insurance:** Very likely (85% chance, comprehensive $100–180/mo)
+- **Utilities:** Higher quarterly bills
+- **Rent:** $1,000–1,500/fortnight (95% chance)
 
-## 5) Family Renter — Grace Turner (39)
+## 5) Young Family — Grace Turner (35)
 
-- **Bank tenure:** ~3 years
-- **Accounts:** Everyday Transaction + Rainy Day Fund
-- **Income pattern:** Fortnightly dual-income household style inflow
-- **Scheduled payments:** Weekly rent, utilities, family streaming bundle
-- **Typical statement lines:**
-  - `OSKO PAYMENT - RENT`
-  - `COLES 0871 NEWTOWN`
-  - `KMART 097`
-  - `DIRECT DEBIT - DISNEY+`
-- **Behaviour notes:** High supermarket/family retail volume with stable recurring bills.
+- **Bank tenure:** ~2.5 years
+- **Account:** Everyday Transaction
+- **Income:** Fortnightly ($3,000–5,500), often dual income (60% chance of partner salary)
+- **Spending:** Heavy groceries (Woolworths, Coles), Kmart, Big W, pharmacy
+- **Subscriptions:** Up to 3 (Disney+, Netflix, Stan)
+- **Mobile:** Any provider ($55–90/mo)
+- **Car insurance:** Very likely (90% chance, comprehensive $120–200/mo)
+- **Utilities:** Higher bills (scaled up for family)
+- **Rent:** $900–1,400/fortnight (95% chance)
 
-## 6) Mortgage Family — Jack O'Connor (45)
+## 6) Single Parent — Zoe Adams (34)
 
-- **Bank tenure:** ~3-4 years
-- **Accounts:** Everyday Transaction + Home Loan + Offset + Goal Saver
-- **Income pattern:** Fortnightly salary
-- **Scheduled payments:** Home loan repayment (monthly), utilities, insurance-style recurring debits
-- **Typical statement lines:**
-  - `DIRECT DEBIT - HOME LOAN REPAYMENT`
-  - `TRANSFER IN` (offset)
-  - `INTEREST CHARGED` (loan)
-  - `EXTRA REPAYMENT`
-- **Behaviour notes:** Offset sweeps and mortgage acceleration behaviour.
+- **Bank tenure:** ~7 months
+- **Account:** Everyday Transaction
+- **Income:** Fortnightly wages ($2,000–3,200) + Family Tax Benefit ($180–380/fn)
+- **Spending:** Groceries, kids items, pharmacy, GP
+- **Subscriptions:** Up to 3
+- **Mobile:** Optus ($40–65/mo)
+- **Car insurance:** Sometimes (60% chance, 3rd party fire & theft $40–70/mo)
+- **Utilities:** Quarterly ($100–180)
+- **Rent:** $700–1,100/fortnight (95% chance)
+- **Notes:** Tighter margins; may see failed transactions
 
-## 7) Affluent Professional — Amelia Chen (41)
+## 7) Comfortable Retiree — Gabriel White (72)
 
-- **Bank tenure:** ~2-3 years
-- **Accounts:** Everyday Transaction + Home Loan + Offset + Bonus Saver
-- **Income pattern:** Monthly high salary
-- **Scheduled payments:** Home loan, premium utilities/subscriptions
-- **Typical statement lines:**
-  - `SALARY SWEEP TO OFFSET`
-  - `DIRECT DEBIT - HOME LOAN REPAYMENT`
-  - `BUNNINGS 731`
-  - `THE ROYAL HOTEL SYDNEY`
-- **Behaviour notes:** Large balances, active offset optimization, discretionary spend without cash stress.
+- **Bank tenure:** ~2.7 years (near bank opening)
+- **Account:** Everyday Transaction
+- **Income:** Fortnightly pension ($2,000–3,500) + super drawdown ($400–1,200/fn, 70% chance)
+- **Spending:** Modest groceries, pharmacy (Chemist Warehouse frequent), occasional dining
+- **Subscriptions:** Up to 2
+- **Mobile:** Telstra ($55–90/mo)
+- **Car insurance:** Likely (80% chance, comprehensive $70–120/mo)
+- **Utilities:** Quarterly
+- **Rent:** None (owns outright)
 
-## 8) Small Business Operator — Marcus Kelly (52)
+## 8) Modest Retiree — Margaret Kelly (78)
 
-- **Bank tenure:** ~18 months
-- **Accounts:** Everyday Transaction + Home Loan + Offset
-- **Income pattern:** Weekly irregular business receipts
-- **Scheduled payments:** Mortgage and core utilities
-- **Typical statement lines:**
-  - `BUSINESS RECEIPTS TRANSFER`
-  - `DIRECT DEBIT - ORIGIN ENERGY`
-  - `SHELL REDFERN`
-  - `WILSON PARKING`
-- **Behaviour notes:** Uneven inflows, frequent transfers between transaction and offset.
-
-## 9) Financially Stretched — Zoe Adams (34)
-
-- **Bank tenure:** ~1 month
-- **Accounts:** Everyday Transaction (sometimes small saver)
-- **Income pattern:** Fortnightly low-to-mid wages
-- **Scheduled payments:** Rent + mobile + one subscription
-- **Typical statement lines:**
-  - `OSKO PAYMENT - RENT`
-  - `DIRECT DEBIT - OPTUS`
-  - `ATM WITHDRAWAL`
-  - `TRANSFER FROM SAVINGS`
-- **Behaviour notes:** Narrow safe-to-spend margin, balance often recovers near payday.
-
-## 10) Pensioner Retiree — Gabriel White (74)
-
-- **Bank tenure:** ~4+ years
-- **Accounts:** Everyday Transaction + Goal Saver
-- **Income pattern:** Fortnightly pension
-- **Scheduled payments:** Core utilities, selective subscriptions
-- **Typical statement lines:**
-  - `SERVICES AUSTRALIA PENSION`
-  - `DIRECT DEBIT - SYDNEY WATER`
-  - `CHEMIST WAREHOUSE`
-  - `INTEREST PAID`
-- **Behaviour notes:** Lower transaction frequency, regular health and household spending.
+- **Bank tenure:** ~2.7 years (near bank opening)
+- **Account:** Everyday Transaction
+- **Income:** Fortnightly pension only ($1,200–1,800)
+- **Spending:** Basic groceries, pharmacy, health
+- **Subscriptions:** 0–1
+- **Mobile:** Vodafone budget ($30–55/mo)
+- **Car insurance:** Sometimes (50% chance, 3rd party $25–40/mo)
+- **Utilities:** Lower quarterly bills
+- **Rent:** None (owns outright)
+- **Notes:** Tighter margins; may see occasional failed transactions
 
 ---
 
 ## Coverage Summary
 
-- **Total seeded customers:** 1,000
-- **Life stages covered:** teen, student, early worker, young professional, renting families, mortgage families, affluent, business-owner, financially stretched, pensioner
-- **Recurring payment realism:** rent, mortgage, utilities, telco, streaming
-- **Ad hoc behaviour realism:** short-term streaming binge windows, pub/meals/convenience spikes, ATM use
-- **Tenure spread:** includes very new customers (~1 month), mid-tenure, and long-tenure (3+ years)
+- **Total seeded customers:** 150
+- **Account type:** Transaction only (3% p.a. interest, accrued daily, paid monthly)
+- **Personas:** Student, Zero-Hours Worker, Young Professional, Established Professional, Young Family, Single Parent, Comfortable Retiree, Modest Retiree
+- **Failed transactions:** ~45 across the dataset (insufficient funds on direct debits / rent)
+- **No overdrafts:** Accounts never go below zero
+- **Recurring payments:** Mix of scheduled (auto) and ad-hoc — never both for the same service
+- **Tenure spread:** 2 months (newest) to opening day 2 July 2023
+- **Australian context:** AUD, Aussie merchants, realistic wages

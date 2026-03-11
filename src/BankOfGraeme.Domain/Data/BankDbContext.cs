@@ -61,6 +61,7 @@ public class BankDbContext : DbContext
             e.Property(c => c.LastName).HasMaxLength(100);
             e.Property(c => c.Email).HasMaxLength(200);
             e.Property(c => c.Phone).HasMaxLength(20);
+            e.Property(c => c.Persona).HasMaxLength(50);
         });
 
         modelBuilder.Entity<Account>(e =>
@@ -93,6 +94,7 @@ public class BankDbContext : DbContext
             e.HasKey(t => t.Id);
             e.Property(t => t.Amount).HasPrecision(18, 2);
             e.Property(t => t.Description).HasMaxLength(500);
+            e.Property(t => t.FailureReason).HasMaxLength(500);
             e.Property(t => t.Status).HasConversion<string>().HasMaxLength(20);
 
             e.HasOne(t => t.Account)

@@ -78,6 +78,11 @@ export default function CustomerDetailPage() {
         <span className="text-text-secondary">|</span>
         <span className="text-sm font-bold">{customer.firstName} {customer.lastName}</span>
         <span className="text-xs text-text-secondary">(ID: {customer.id})</span>
+        {customer.persona && (
+          <span className="inline-block px-1.5 py-0.5 rounded bg-crm-highlight/30 text-crm-dark text-[10px] font-medium">
+            {customer.persona}
+          </span>
+        )}
       </div>
 
       {error && (

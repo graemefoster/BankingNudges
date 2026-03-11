@@ -55,6 +55,7 @@ export default function CustomerListPage() {
             <th className="px-2 py-1 font-normal">Name</th>
             <th className="px-2 py-1 font-normal">Email</th>
             <th className="px-2 py-1 font-normal">Phone</th>
+            <th className="px-2 py-1 font-normal">Persona</th>
             <th className="px-2 py-1 font-normal text-center">Accts</th>
             <th className="px-2 py-1 font-normal">Created</th>
           </tr>
@@ -62,13 +63,13 @@ export default function CustomerListPage() {
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan={6} className="px-2 py-4 text-center text-text-secondary">
+              <td colSpan={7} className="px-2 py-4 text-center text-text-secondary">
                 Loading...
               </td>
             </tr>
           ) : customers.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-2 py-4 text-center text-text-secondary">
+              <td colSpan={7} className="px-2 py-4 text-center text-text-secondary">
                 No customers found
               </td>
             </tr>
@@ -83,6 +84,13 @@ export default function CustomerListPage() {
                 <td className="px-2 py-1 font-bold text-crm-dark underline">{c.fullName}</td>
                 <td className="px-2 py-1">{c.email}</td>
                 <td className="px-2 py-1">{c.phone || '—'}</td>
+                <td className="px-2 py-1">
+                  {c.persona ? (
+                    <span className="inline-block px-1.5 py-0.5 rounded bg-crm-highlight/30 text-crm-dark text-[10px] font-medium">
+                      {c.persona}
+                    </span>
+                  ) : '—'}
+                </td>
                 <td className="px-2 py-1 text-center">{c.activeAccountCount ?? c.accountCount}</td>
                 <td className="px-2 py-1 text-text-secondary">{formatDate(c.createdAt)}</td>
               </tr>

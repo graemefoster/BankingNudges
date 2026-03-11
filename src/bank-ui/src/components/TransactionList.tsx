@@ -135,12 +135,17 @@ export default function TransactionList({
             {group.transactions.map((tx) => (
               <div
                 key={tx.id}
-                className={`bg-dark-elevated rounded-lg px-4 py-3 flex items-center justify-between border border-border ${tx.status === TransactionStatus.Pending ? 'opacity-70 border-accent-amber/30' : ''}`}
+                className={`bg-dark-elevated rounded-lg px-4 py-3 flex items-center justify-between border border-border ${tx.status === TransactionStatus.Pending ? 'opacity-70 border-accent-amber/30' : ''} ${tx.status === TransactionStatus.Failed ? 'border-red-500/40 bg-red-500/5' : ''}`}
               >
                 <div className="flex-1 min-w-0 mr-3">
-                  <p className="text-sm font-medium text-text-primary truncate">
+                  <p className={`text-sm font-medium truncate ${tx.status === TransactionStatus.Failed ? 'text-red-400' : 'text-text-primary'}`}>
                     {tx.description}
                   </p>
+                  {tx.status === TransactionStatus.Failed && tx.failureReason && (
+                    <p className="text-xs text-red-400/80 mt-0.5">
+                      {tx.failureReason}
+                    </p>
+                  )}
                   <p className="text-xs text-text-secondary mt-0.5">
                     {transactionTypeLabel[tx.transactionType]} ·{' '}
                     {new Date(tx.createdAt).toLocaleTimeString('en-AU', {
@@ -150,13 +155,19 @@ export default function TransactionList({
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className={`text-sm font-semibold ${txColor(tx)}`}>
-                    {txSign(tx)}
-                    {formatCurrency(Math.abs(tx.amount))}
-                  </p>
+                  {tx.status === TransactionStatus.Failed ? (
+                    <p className="text-sm font-semibold text-red-400">Failed</p>
+                  ) : (
+                    <p className={`text-sm font-semibold ${txColor(tx)}`}>
+                      {txSign(tx)}
+                      {formatCurrency(Math.abs(tx.amount))}
+                    </p>
+                  )}
                   <p className="text-xs text-text-muted">
                     {tx.status === TransactionStatus.Pending ? (
                       <span className="text-accent-amber">Pending</span>
+                    ) : tx.status === TransactionStatus.Failed ? (
+                      <span className="text-red-400">Declined</span>
                     ) : (
                       transactionTypeLabel[tx.transactionType]
                     )}

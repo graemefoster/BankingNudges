@@ -37,7 +37,7 @@ public static class CrmCustomerEndpoints
                 .Select(c => new
                 {
                     c.Id, c.FirstName, c.LastName, c.Email, c.Phone,
-                    c.DateOfBirth, c.CreatedAt,
+                    c.DateOfBirth, c.CreatedAt, c.Persona,
                     FullName = c.FirstName + " " + c.LastName,
                     AccountCount = c.Accounts.Count,
                     ActiveAccountCount = c.Accounts.Count(a => a.IsActive)
@@ -59,6 +59,7 @@ public static class CrmCustomerEndpoints
             {
                 customer.Id, customer.FirstName, customer.LastName,
                 customer.Email, customer.Phone, customer.DateOfBirth, customer.CreatedAt,
+                customer.Persona,
                 FullName = customer.FirstName + " " + customer.LastName,
                 Accounts = customer.Accounts.Select(a => new
                 {

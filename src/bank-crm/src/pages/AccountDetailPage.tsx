@@ -336,16 +336,23 @@ export default function AccountDetailPage() {
               <tr><td colSpan={5} className="px-2 py-4 text-center text-text-secondary">No transactions found.</td></tr>
             ) : (
               transactions.map((t, i) => (
-                <tr key={t.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${t.status === TransactionStatus.Pending ? 'opacity-70' : ''}`}>
+                <tr key={t.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${t.status === TransactionStatus.Pending ? 'opacity-70' : ''} ${t.status === TransactionStatus.Failed ? 'bg-red-50' : ''}`}>
                   <td className="px-2 py-1 text-text-secondary whitespace-nowrap">{formatDateTime(t.createdAt)}</td>
-                  <td className="px-2 py-1">{t.description}</td>
+                  <td className="px-2 py-1">
+                    {t.description}
+                    {t.status === TransactionStatus.Failed && t.failureReason && (
+                      <span className="block text-[10px] text-red-600 mt-0.5">Reason: {t.failureReason}</span>
+                    )}
+                  </td>
                   <td className="px-2 py-1 text-text-secondary">{transactionTypeLabel[t.transactionType]}</td>
-                  <td className={`px-2 py-1 text-right font-mono ${t.amount >= 0 ? 'text-crm-secondary' : 'text-red-700'}`}>
-                    {t.amount >= 0 ? '+' : ''}{formatCurrency(t.amount)}
+                  <td className={`px-2 py-1 text-right font-mono ${t.status === TransactionStatus.Failed ? 'text-red-400' : t.amount >= 0 ? 'text-crm-secondary' : 'text-red-700'}`}>
+                    {t.status === TransactionStatus.Failed ? '—' : `${t.amount >= 0 ? '+' : ''}${formatCurrency(t.amount)}`}
                   </td>
                   <td className="px-2 py-1">
                     {t.status === TransactionStatus.Pending ? (
                       <span className="inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-medium">Pending</span>
+                    ) : t.status === TransactionStatus.Failed ? (
+                      <span className="inline-block px-1.5 py-0.5 rounded bg-red-100 text-red-800 text-[10px] font-medium">Failed</span>
                     ) : (
                       <span className="inline-block px-1.5 py-0.5 rounded bg-green-100 text-green-800 text-[10px] font-medium">Settled</span>
                     )}

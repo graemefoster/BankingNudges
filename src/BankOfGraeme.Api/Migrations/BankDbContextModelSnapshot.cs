@@ -155,6 +155,10 @@ namespace BankOfGraeme.Api.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("Persona")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
@@ -449,6 +453,10 @@ namespace BankOfGraeme.Api.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("FailureReason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 

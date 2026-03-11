@@ -19,6 +19,7 @@ public class Transaction
     public required string Description { get; set; }
     public TransactionType TransactionType { get; set; }
     public TransactionStatus Status { get; set; } = TransactionStatus.Settled;
+    public string? FailureReason { get; set; }
     public DateTime? SettledAt { get; set; }
     public DateTime CreatedAt { get; set; }
 
