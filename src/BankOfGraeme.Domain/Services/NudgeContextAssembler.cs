@@ -30,18 +30,6 @@ public class NudgeContextAssembler(
     NudgeSignalDetector signalDetector,
     ILogger<NudgeContextAssembler> logger)
 {
-    private static readonly Dictionary<string, string[]> CategoryMerchants = new()
-    {
-        ["Groceries"] = ["WOOLWORTHS", "COLES", "ALDI", "IGA", "HARRIS FARM"],
-        ["Fuel"] = ["BP ", "SHELL", "AMPOL", "7-ELEVEN FUEL"],
-        ["Dining"] = ["MCDONALD", "GUZMAN", "SUSHI", "UBER EATS", "MENULOG", "COFFEE", "GLORIA JEAN", "BOOST JUICE"],
-        ["Bars"] = ["HOTEL", "TAVERN", "BREWPUB", "COURTHOUSE"],
-        ["Transport"] = ["UBER *TRIP", "DIDI", "OPAL", "PARKING"],
-        ["Health"] = ["CHEMIST", "PHARMACY", "DENTAL", "MEDICAL", "DR "],
-        ["Retail"] = ["BUNNINGS", "JB HI-FI", "KMART", "BIG W", "TARGET"],
-        ["Utilities"] = ["AGL", "ORIGIN ENERGY", "SYDNEY WATER", "TELSTRA", "OPTUS", "VODAFONE"]
-    };
-
     public async Task<CustomerContext?> AssembleAsync(int customerId)
     {
         var now = dateTime.UtcNow;
@@ -71,24 +59,14 @@ public class NudgeContextAssembler(
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
 
-        // Include Transaction, Savings, and Offset accounts in usable balance
-        // Exclude HomeLoan accounts (they carry the loan debt, not usable cash)
-        // For offset accounts, only count the excess beyond the linked home loan's
-        // remaining balance — the rest is actively reducing mortgage interest.
+        // Include Transaction, Savings, and Offset accounts in usable balance.
+        // Exclude HomeLoan accounts (they carry the loan debt, not usable cash).
+        // Offset account balances are fully usable — the money is the customer's
+        // everyday cash that also happens to reduce home loan interest.
         var currentBalance = 0m;
         foreach (var acct in accounts.Where(a => a.AccountType is AccountType.Transaction or AccountType.Savings or AccountType.Offset))
         {
-            if (acct.AccountType == AccountType.Offset && acct.HomeLoanAccountId.HasValue)
-            {
-                var linkedLoan = accounts.FirstOrDefault(a => a.Id == acct.HomeLoanAccountId.Value);
-                var remainingLoan = linkedLoan is not null ? Math.Abs(linkedLoan.Balance) : 0m;
-                var excess = acct.Balance - remainingLoan;
-                currentBalance += Math.Max(0m, excess);
-            }
-            else
-            {
-                currentBalance += acct.Balance;
-            }
+            currentBalance += acct.Balance;
         }
 
         var scheduledPayments = await db.ScheduledPayments
@@ -188,16 +166,8 @@ public class NudgeContextAssembler(
         return delta;
     }
 
-    private static string CategoriseTransaction(string description)
-    {
-        var upper = description.ToUpperInvariant();
-        foreach (var (category, merchants) in CategoryMerchants)
-        {
-            if (merchants.Any(m => upper.Contains(m)))
-                return category;
-        }
-        return "Other";
-    }
+    private static string CategoriseTransaction(string description) =>
+        MerchantCategoryMapper.Categorise(description);
 
     private static decimal EstimateMonthlyIncome(List<Transaction> transactions)
     {

@@ -1,32 +1,24 @@
 using BankOfGraeme.Api.Data;
 using BankOfGraeme.Api.Models;
+using BankOfGraeme.Api.Services.InterestCalculation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace BankOfGraeme.Api.Services;
 
-public class InterestCalculationService(BankDbContext db, ILogger<InterestCalculationService> logger)
+public class InterestCalculationService(
+    BankDbContext db,
+    IEnumerable<IAccountInterestCalculator> calculators,
+    ILogger<InterestCalculationService> logger)
 {
     /// <summary>
     /// Calculate and store daily interest accrual for all eligible accounts.
+    /// Delegates per-account-type logic to <see cref="IAccountInterestCalculator"/> implementations.
     /// Idempotent: skips accounts that already have an accrual for the given date.
     /// Handles unique constraint violations gracefully for concurrent runs.
     /// </summary>
     public async Task AccrueDailyInterestAsync(DateOnly accrualDate)
     {
-        var homeLoans = await db.Accounts
-            .Include(a => a.OffsetAccounts)
-            .Where(a => a.IsActive && a.AccountType == AccountType.HomeLoan && a.InterestRate != null)
-            .ToListAsync();
-
-        var savings = await db.Accounts
-            .Where(a => a.IsActive && a.AccountType == AccountType.Savings && a.InterestRate != null)
-            .ToListAsync();
-
-        var transactionAccounts = await db.Accounts
-            .Where(a => a.IsActive && a.AccountType == AccountType.Transaction && a.InterestRate != null)
-            .ToListAsync();
-
         var existingAccruals = await db.InterestAccruals
             .Where(ia => ia.AccrualDate == accrualDate)
             .Select(ia => ia.AccountId)
@@ -34,72 +26,26 @@ public class InterestCalculationService(BankDbContext db, ILogger<InterestCalcul
 
         int accrued = 0;
 
-        foreach (var loan in homeLoans)
+        foreach (var calculator in calculators)
         {
-            if (existingAccruals.Contains(loan.Id)) continue;
+            var accounts = await calculator.GetEligibleAccounts(db).ToListAsync();
 
-            // Only charge interest on debt (negative balance). If in credit, no interest.
-            var principal = Math.Max(0, -loan.Balance);
-            if (principal == 0) continue;
-
-            var offsetBalance = loan.OffsetAccounts
-                .Where(o => o.IsActive)
-                .Sum(o => Math.Max(0, o.Balance));
-            var effectivePrincipal = Math.Max(0, principal - offsetBalance);
-            var dailyRate = loan.InterestRate!.Value / 100m / 365m;
-            var dailyInterest = effectivePrincipal * dailyRate;
-
-            // Home loan interest is charged (negative amount — increases debt)
-            db.InterestAccruals.Add(new InterestAccrual
+            foreach (var account in accounts)
             {
-                AccountId = loan.Id,
-                AccrualDate = accrualDate,
-                DailyAmount = -dailyInterest,
-                Posted = false
-            });
-            accrued++;
-        }
+                if (existingAccruals.Contains(account.Id)) continue;
 
-        foreach (var account in savings)
-        {
-            if (existingAccruals.Contains(account.Id)) continue;
+                var dailyInterest = calculator.CalculateDailyInterest(account);
+                if (dailyInterest == 0) continue;
 
-            var balance = Math.Max(0, account.Balance);
-            if (balance == 0) continue;
-
-            var dailyRate = account.InterestRate!.Value / 100m / 365m;
-            var dailyInterest = balance * dailyRate;
-
-            // Savings interest is earned (positive amount)
-            db.InterestAccruals.Add(new InterestAccrual
-            {
-                AccountId = account.Id,
-                AccrualDate = accrualDate,
-                DailyAmount = dailyInterest,
-                Posted = false
-            });
-            accrued++;
-        }
-
-        // Transaction accounts earn interest on positive balance (same logic as savings)
-        foreach (var account in transactionAccounts)
-        {
-            if (existingAccruals.Contains(account.Id)) continue;
-
-            var balance = Math.Max(0, account.Balance);
-            if (balance == 0) continue;
-
-            var dailyRate = account.InterestRate!.Value / 100m / 365m;
-            var dailyInterest = balance * dailyRate;
-
-            db.InterestAccruals.Add(new InterestAccrual
-            {
-                AccountId = account.Id,
-                AccrualDate = accrualDate,
-                DailyAmount = dailyInterest,
-                Posted = false
-            });
-            accrued++;
+                db.InterestAccruals.Add(new InterestAccrual
+                {
+                    AccountId = account.Id,
+                    AccrualDate = accrualDate,
+                    DailyAmount = dailyInterest,
+                    Posted = false
+                });
+                accrued++;
+            }
         }
 
         if (accrued > 0)
@@ -111,9 +57,6 @@ public class InterestCalculationService(BankDbContext db, ILogger<InterestCalcul
             }
             catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
             {
-                // Concurrent run already inserted accruals — this is benign.
-                // Detach only the failed accrual entities, not the entire tracker
-                // (other consumers may have entities tracked on this shared context).
                 logger.LogWarning("Concurrent accrual detected for {Date}, treating as idempotent", accrualDate);
                 foreach (var entry in db.ChangeTracker.Entries<InterestAccrual>().ToList())
                     entry.State = EntityState.Detached;

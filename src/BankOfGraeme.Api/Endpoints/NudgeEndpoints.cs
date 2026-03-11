@@ -165,6 +165,43 @@ public static class NudgeEndpoints
             });
         });
 
+        // GET /api/nudges/:nudgeId/insight
+        group.MapGet("/{nudgeId:int}/insight", async (int nudgeId, BankDbContext db) =>
+        {
+            var nudge = await db.Nudges
+                .AsNoTracking()
+                .FirstOrDefaultAsync(n => n.Id == nudgeId);
+
+            if (nudge is null) return Results.NotFound();
+
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var context = JsonSerializer.Deserialize<CustomerContext>(nudge.ContextSnapshot, options);
+
+            if (context is null)
+                return Results.Problem("Unable to parse nudge context");
+
+            var response = new NudgeInsightResponse(
+                Nudge: new NudgeDetailDto(
+                    nudge.Id, nudge.Message, nudge.Cta,
+                    nudge.Urgency.ToString(), nudge.Category.ToString(),
+                    nudge.Reasoning, nudge.Status.ToString(),
+                    nudge.CreatedAt, nudge.RespondedAt),
+                Context: new NudgeInsightContext(
+                    Financial: new NudgeInsightFinancial(
+                        context.Financial.CurrentBalance,
+                        context.Financial.AvgMonthlyIncome,
+                        context.Financial.SpendByCategory,
+                        context.Financial.SpendDelta,
+                        context.Financial.DaysUntilLikelyPayday),
+                    Upcoming: context.Upcoming.Select(u => new NudgeInsightPayment(
+                        u.Merchant, u.Amount, u.DueInDays, u.Confidence, u.Source)).ToList(),
+                    Signals: context.Signals.Select(s => new NudgeInsightSignal(
+                        s.Type.ToString(), s.Severity.ToString(), s.Category, s.Delta,
+                        s.PaymentMerchant, s.PaymentAmount, s.DueInDays)).ToList()));
+
+            return Results.Ok(response);
+        });
+
         // GET /api/nudges/:customerId/history
         group.MapGet("/{customerId:int}/history", async (int customerId, BankDbContext db) =>
         {
@@ -205,3 +242,9 @@ public record NudgeRespondRequest(string Action);
 public record BatchRunRequest(int? SampleSize, List<int>? CustomerIds);
 public record NudgeDto(int Id, string Message, string Cta, string Urgency, string Category);
 public record NudgeGenerateResponse(bool Generated, NudgeDto? Nudge, string? Reason);
+public record NudgeInsightResponse(NudgeDetailDto Nudge, NudgeInsightContext Context);
+public record NudgeDetailDto(int Id, string Message, string Cta, string Urgency, string Category, string Reasoning, string Status, DateTime CreatedAt, DateTime? RespondedAt);
+public record NudgeInsightContext(NudgeInsightFinancial Financial, List<NudgeInsightPayment> Upcoming, List<NudgeInsightSignal> Signals);
+public record NudgeInsightFinancial(decimal CurrentBalance, decimal AvgMonthlyIncome, Dictionary<string, decimal> SpendByCategory, Dictionary<string, double> SpendDelta, int DaysUntilLikelyPayday);
+public record NudgeInsightPayment(string Merchant, decimal Amount, int DueInDays, string Confidence, string Source);
+public record NudgeInsightSignal(string Type, string Severity, string? Category, double? Delta, string? PaymentMerchant, decimal? PaymentAmount, int? DueInDays);

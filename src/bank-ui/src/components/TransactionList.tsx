@@ -1,9 +1,43 @@
+import { useState } from 'react';
 import type { Transaction } from '../types';
 import {
   TransactionStatus,
   transactionTypeLabel,
   formatCurrency,
 } from '../types';
+
+const categoryIcons: Record<string, string> = {
+  Groceries: '🛒',
+  Fuel: '⛽',
+  Dining: '🍔',
+  Bars: '🍺',
+  Transport: '🚗',
+  Health: '💊',
+  Retail: '🛍️',
+  Utilities: '💡',
+  Other: '💳',
+};
+
+function MerchantIcon({ tx }: { tx: Transaction }) {
+  const [failed, setFailed] = useState(false);
+
+  if (tx.merchantLogoUrl && !failed) {
+    return (
+      <img
+        src={tx.merchantLogoUrl}
+        alt=""
+        className="w-8 h-8 rounded-full object-contain bg-dark-surface"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <span className="w-8 h-8 rounded-full bg-dark-surface flex items-center justify-center text-base">
+      {categoryIcons[tx.merchantCategory] ?? categoryIcons.Other}
+    </span>
+  );
+}
 
 interface Props {
   transactions: Transaction[];
@@ -137,6 +171,9 @@ export default function TransactionList({
                 key={tx.id}
                 className={`bg-dark-elevated rounded-lg px-4 py-3 flex items-center justify-between border border-border ${tx.status === TransactionStatus.Pending ? 'opacity-70 border-accent-amber/30' : ''} ${tx.status === TransactionStatus.Failed ? 'border-red-500/40 bg-red-500/5' : ''}`}
               >
+                <div className="shrink-0 mr-3">
+                  <MerchantIcon tx={tx} />
+                </div>
                 <div className="flex-1 min-w-0 mr-3">
                   <p className={`text-sm font-medium truncate ${tx.status === TransactionStatus.Failed ? 'text-red-400' : 'text-text-primary'}`}>
                     {tx.description}
@@ -147,7 +184,7 @@ export default function TransactionList({
                     </p>
                   )}
                   <p className="text-xs text-text-secondary mt-0.5">
-                    {transactionTypeLabel[tx.transactionType]} ·{' '}
+                    {tx.merchantCategory} · {transactionTypeLabel[tx.transactionType]} ·{' '}
                     {new Date(tx.createdAt).toLocaleTimeString('en-AU', {
                       hour: '2-digit',
                       minute: '2-digit',

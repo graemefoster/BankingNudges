@@ -113,6 +113,8 @@ export function getTransactions(
   accountId: number,
   params?: {
     type?: string;
+    status?: string;
+    description?: string;
     from?: string;
     to?: string;
     minAmount?: number;
@@ -123,6 +125,8 @@ export function getTransactions(
 ): Promise<{ transactions: Transaction[]; total: number; page: number; pageSize: number }> {
   const sp = new URLSearchParams();
   if (params?.type) sp.set('type', params.type);
+  if (params?.status) sp.set('status', params.status);
+  if (params?.description) sp.set('description', params.description);
   if (params?.from) sp.set('from', params.from);
   if (params?.to) sp.set('to', params.to);
   if (params?.minAmount !== undefined) sp.set('minAmount', String(params.minAmount));

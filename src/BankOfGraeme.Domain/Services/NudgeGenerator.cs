@@ -38,6 +38,8 @@ public class NudgeGenerator(
         - Only use figures that appear in the context provided. Never invent numbers.
         - Be specific. Bad: "you may be overspending". Good: "your dining spend is up $180 this month".
         - One nudge only. Pick the highest value signal if multiple exist.
+        - Do NOT combine a spend spike with upcoming payments to create urgency when the customer's balance comfortably covers those payments. A spend increase is informational, not alarming, when there is plenty of cash available.
+        - Never suggest "trimming costs" or "reviewing expenses" when the customer's balance is healthy and comfortably above their monthly spend. Focus on positive, forward-looking actions instead.
         - Keep the message under 2 sentences.
         - Suggest one clear action.
         - Tone: warm, direct, non-judgmental.

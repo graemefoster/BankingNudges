@@ -42,3 +42,8 @@ Entity `CreatedAt` properties are stamped automatically by the `BankDbContext.Sa
 ## Namespace Convention
 
 The Domain project preserves `BankOfGraeme.Api.Models`, `BankOfGraeme.Api.Data`, and `BankOfGraeme.Api.Services` namespaces (not `BankOfGraeme.Domain.*`). This avoids breaking existing using statements.
+
+
+### Leaving hints behind
+
+When you work on a problem, leave something in the README.md or a comment in the code that future you can easily find when you come back to it. For example, if you have to make a non-obvious decision, write down the reasoning behind it. If you have to implement a workaround, explain why it's necessary and what the ideal solution would look like. This way, when you come back to the code later, you'll have a clear understanding of your past self's thought process and can pick up right where you left off.

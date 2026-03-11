@@ -34,37 +34,43 @@ The persona is stored on each customer record and visible in the CRM.
 
 - **Bank tenure:** ~13 months
 - **Account:** Everyday Transaction
+- **Home Loan:** ~25% chance ($400k–$600k, 5.99–6.49%, 30 year term)
+- **Offset Account:** Linked to home loan ($5k–$20k initial, monthly top-ups)
 - **Income:** Fortnightly salary ($2,500–3,500)
 - **Spending:** Restaurants, Uber, coffee, retail, groceries
 - **Subscriptions:** Up to 3 (Netflix, Stan, Spotify, etc.)
 - **Mobile:** Any provider ($55–90/mo)
 - **Car insurance:** Likely (70% chance, comprehensive $80–140/mo)
 - **Utilities:** AGL/Origin quarterly, Sydney Water
-- **Rent:** $700–1,100/fortnight (95% chance)
+- **Rent:** $700–1,100/fortnight (95% chance; suppressed if home loan holder)
 
 ## 4) Established Professional — Ethan Ross (42)
 
 - **Bank tenure:** ~2 years
 - **Account:** Everyday Transaction
+- **Home Loan:** ~60% chance ($650k–$900k, 5.49–6.29%, 25–30 year term)
+- **Offset Account:** Linked to home loan ($20k–$80k initial, monthly top-ups)
 - **Income:** Fortnightly salary ($3,500–5,500)
 - **Spending:** Higher dining, retail, home improvement
 - **Subscriptions:** Up to 3 (Netflix, Stan, Disney+, etc.)
 - **Mobile:** Often Telstra ($55–90/mo)
 - **Car insurance:** Very likely (85% chance, comprehensive $100–180/mo)
 - **Utilities:** Higher quarterly bills
-- **Rent:** $1,000–1,500/fortnight (95% chance)
+- **Rent:** $1,000–1,500/fortnight (95% chance; suppressed if home loan holder)
 
 ## 5) Young Family — Grace Turner (35)
 
 - **Bank tenure:** ~2.5 years
 - **Account:** Everyday Transaction
+- **Home Loan:** ~50% chance ($550k–$800k, 5.79–6.49%, 30 year term)
+- **Offset Account:** Linked to home loan ($10k–$40k initial, monthly top-ups)
 - **Income:** Fortnightly ($3,000–5,500), often dual income (60% chance of partner salary)
 - **Spending:** Heavy groceries (Woolworths, Coles), Kmart, Big W, pharmacy
 - **Subscriptions:** Up to 3 (Disney+, Netflix, Stan)
 - **Mobile:** Any provider ($55–90/mo)
 - **Car insurance:** Very likely (90% chance, comprehensive $120–200/mo)
 - **Utilities:** Higher bills (scaled up for family)
-- **Rent:** $900–1,400/fortnight (95% chance)
+- **Rent:** $900–1,400/fortnight (95% chance; suppressed if home loan holder)
 
 ## 6) Single Parent — Zoe Adams (34)
 
@@ -109,10 +115,16 @@ The persona is stored on each customer record and visible in the CRM.
 ## Coverage Summary
 
 - **Total seeded customers:** 150
-- **Account type:** Transaction only (3% p.a. interest, accrued daily, paid monthly)
+- **Account types:** Transaction (all non-home-loan customers), HomeLoan (~20 customers), Offset (linked 1:1 to each home loan)
+- **Offset as everyday:** ~80% of home loan customers use their offset account as their primary everyday account (salary in, spending out, maximising offset benefit). ~20% keep a separate transaction account alongside the offset.
+- **Transaction account:** 3% p.a. interest, accrued daily, paid monthly
+- **Home loans:** PMT-amortized repayments, daily interest accrual with offset reduction
+- **Offset accounts:** Reduce interest-bearing principal on linked home loan; funded by opening deposit + monthly salary sweeps
 - **Personas:** Student, Zero-Hours Worker, Young Professional, Established Professional, Young Family, Single Parent, Comfortable Retiree, Modest Retiree
+- **Home loan eligibility:** Young Professional (25%), Established Professional (60%), Young Family (50%)
 - **Failed transactions:** ~45 across the dataset (insufficient funds on direct debits / rent)
 - **No overdrafts:** Accounts never go below zero
 - **Recurring payments:** Mix of scheduled (auto) and ad-hoc — never both for the same service
+- **Rent suppressed** for customers who hold a home loan (they're homeowners)
 - **Tenure spread:** 2 months (newest) to opening day 2 July 2023
 - **Australian context:** AUD, Aussie merchants, realistic wages

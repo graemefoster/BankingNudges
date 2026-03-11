@@ -1,5 +1,6 @@
 using BankOfGraeme.Api.Models;
 using BankOfGraeme.Api.Services;
+using BankOfGraeme.Api.Services.InterestCalculation;
 using Microsoft.EntityFrameworkCore;
 
 namespace BankOfGraeme.Api.Data;
@@ -11,6 +12,14 @@ public static class SeedData
     private const string Bsb = "062-000";
     private const int TransactionBatchSize = 5_000;
     private const decimal TransactionInterestRate = 3.00m;
+
+    // Home loan seed configuration per persona
+    private static readonly Dictionary<string, HomeLoanSeedConfig> HomeLoanConfigs = new()
+    {
+        ["Young Professional"] = new(400_000m, 600_000m, 5.99m, 6.49m, 360, 0.25, 5_000m, 20_000m),
+        ["Established Professional"] = new(650_000m, 900_000m, 5.49m, 6.29m, 300, 0.60, 20_000m, 80_000m),
+        ["Young Family"] = new(550_000m, 800_000m, 5.79m, 6.49m, 360, 0.50, 10_000m, 40_000m),
+    };
 
     // Bank opened on this date - oldest accounts start here
     private static readonly DateTime BankOpeningDate = new(2023, 7, 2, 0, 0, 0, DateTimeKind.Utc);
@@ -202,21 +211,78 @@ public static class SeedData
             db.Customers.Add(profile.Customer);
             db.SaveChanges();
 
-            var account = new Account
-            {
-                CustomerId = profile.Customer.Id,
-                AccountType = AccountType.Transaction,
-                Bsb = Bsb,
-                AccountNumber = (accountNumber++).ToString(),
-                Name = "Everyday Transaction",
-                Balance = 0m,
-                IsActive = true,
-                InterestRate = TransactionInterestRate,
-            };
-            db.Accounts.Add(account);
-            db.SaveChanges();
+            // Determine home loan eligibility before generating transaction history
+            // (so we can suppress rent for homeowners)
+            var hasHomeLoan = HomeLoanConfigs.TryGetValue(profile.Persona.Name, out var loanConfig)
+                && rng.NextDouble() < loanConfig.Likelihood;
 
-            var (txns, schedules) = GenerateTransactionHistory(rng, account, profile, now);
+            // Most home loan customers use the offset as their everyday account
+            // (~80%). The remainder keep a separate transaction account.
+            var offsetIsEveryday = hasHomeLoan && rng.NextDouble() < 0.8;
+
+            Account everydayAccount;
+            Account? homeLoanAccount = null;
+            Account? offsetAccount = null;
+            decimal loanAmount = 0;
+            decimal interestRate = 0;
+
+            if (offsetIsEveryday)
+            {
+                // Create home loan + offset first; offset IS the everyday account
+                loanAmount = Math.Round(RandomDecimal(rng, loanConfig!.LoanMin, loanConfig.LoanMax) / 1000m) * 1000m;
+                interestRate = RandomDecimal(rng, loanConfig.RateMin, loanConfig.RateMax);
+
+                homeLoanAccount = new Account
+                {
+                    CustomerId = profile.Customer.Id,
+                    AccountType = AccountType.HomeLoan,
+                    Bsb = Bsb,
+                    AccountNumber = (accountNumber++).ToString(),
+                    Name = "Home Loan",
+                    Balance = 0m,
+                    IsActive = true,
+                    LoanAmount = loanAmount,
+                    InterestRate = interestRate,
+                    LoanTermMonths = loanConfig.TermMonths,
+                };
+                db.Accounts.Add(homeLoanAccount);
+                db.SaveChanges();
+
+                offsetAccount = new Account
+                {
+                    CustomerId = profile.Customer.Id,
+                    AccountType = AccountType.Offset,
+                    Bsb = Bsb,
+                    AccountNumber = (accountNumber++).ToString(),
+                    Name = "Offset Account",
+                    Balance = 0m,
+                    IsActive = true,
+                    HomeLoanAccountId = homeLoanAccount.Id,
+                };
+                db.Accounts.Add(offsetAccount);
+                db.SaveChanges();
+
+                everydayAccount = offsetAccount;
+            }
+            else
+            {
+                // Standard transaction account
+                everydayAccount = new Account
+                {
+                    CustomerId = profile.Customer.Id,
+                    AccountType = AccountType.Transaction,
+                    Bsb = Bsb,
+                    AccountNumber = (accountNumber++).ToString(),
+                    Name = "Everyday Transaction",
+                    Balance = 0m,
+                    IsActive = true,
+                    InterestRate = TransactionInterestRate,
+                };
+                db.Accounts.Add(everydayAccount);
+                db.SaveChanges();
+            }
+
+            var (txns, schedules) = GenerateTransactionHistory(rng, everydayAccount, profile, now, hasHomeLoan);
 
             foreach (var txn in txns)
             {
@@ -225,6 +291,74 @@ public static class SeedData
                     FlushTransactions(db, transactionBuffer);
             }
             scheduledPayments.AddRange(schedules);
+
+            // Home loan history
+            if (hasHomeLoan)
+            {
+                if (!offsetIsEveryday)
+                {
+                    // Create home loan + offset for customers who keep a separate transaction account
+                    loanAmount = Math.Round(RandomDecimal(rng, loanConfig!.LoanMin, loanConfig.LoanMax) / 1000m) * 1000m;
+                    interestRate = RandomDecimal(rng, loanConfig.RateMin, loanConfig.RateMax);
+
+                    homeLoanAccount = new Account
+                    {
+                        CustomerId = profile.Customer.Id,
+                        AccountType = AccountType.HomeLoan,
+                        Bsb = Bsb,
+                        AccountNumber = (accountNumber++).ToString(),
+                        Name = "Home Loan",
+                        Balance = 0m,
+                        IsActive = true,
+                        LoanAmount = loanAmount,
+                        InterestRate = interestRate,
+                        LoanTermMonths = loanConfig!.TermMonths,
+                    };
+                    db.Accounts.Add(homeLoanAccount);
+                    db.SaveChanges();
+
+                    offsetAccount = new Account
+                    {
+                        CustomerId = profile.Customer.Id,
+                        AccountType = AccountType.Offset,
+                        Bsb = Bsb,
+                        AccountNumber = (accountNumber++).ToString(),
+                        Name = "Offset Account",
+                        Balance = 0m,
+                        IsActive = true,
+                        HomeLoanAccountId = homeLoanAccount.Id,
+                    };
+                    db.Accounts.Add(offsetAccount);
+                    db.SaveChanges();
+                }
+
+                // Precompute monthly offset balance snapshots when offset is the everyday account
+                Dictionary<DateOnly, decimal>? offsetMonthlyBalances = null;
+                if (offsetIsEveryday)
+                {
+                    offsetMonthlyBalances = new Dictionary<DateOnly, decimal>();
+                    var running = 0m;
+                    foreach (var txn in txns.OrderBy(t => t.CreatedAt))
+                    {
+                        running += txn.Amount;
+                        var month = new DateOnly(txn.CreatedAt.Year, txn.CreatedAt.Month, 1);
+                        offsetMonthlyBalances[month] = running;
+                    }
+                }
+
+                var (loanTxns, loanSchedule) = GenerateHomeLoanHistory(
+                    rng, homeLoanAccount!, offsetAccount!, everydayAccount,
+                    loanConfig!, loanAmount, interestRate, profile, now,
+                    offsetIsEveryday, offsetMonthlyBalances);
+
+                foreach (var txn in loanTxns)
+                {
+                    transactionBuffer.Add(txn);
+                    if (transactionBuffer.Count >= TransactionBatchSize)
+                        FlushTransactions(db, transactionBuffer);
+                }
+                scheduledPayments.Add(loanSchedule);
+            }
         }
 
         FlushTransactions(db, transactionBuffer);
@@ -333,7 +467,7 @@ public static class SeedData
     }
 
     private static (List<Transaction> Txns, List<ScheduledPaymentSeed> Schedules)
-        GenerateTransactionHistory(Random rng, Account account, CustomerProfile profile, DateTime now)
+        GenerateTransactionHistory(Random rng, Account account, CustomerProfile profile, DateTime now, bool hasHomeLoan)
     {
         var txns = new List<Transaction>();
         var schedules = new List<ScheduledPaymentSeed>();
@@ -357,7 +491,7 @@ public static class SeedData
         txns.Add(MakeTxn(account.Id, openingDeposit, "Opening deposit",
             TransactionType.Deposit, accountStart));
 
-        var recurringPayments = BuildRecurringPayments(rng, profile, accountStart);
+        var recurringPayments = BuildRecurringPayments(rng, profile, accountStart, hasHomeLoan);
 
         foreach (var rp in recurringPayments.Where(r => r.IsScheduled))
         {
@@ -508,14 +642,166 @@ public static class SeedData
         return (txns, schedules);
     }
 
+    /// <summary>
+    /// Generate historical transactions for a home loan: drawdown, monthly interest charges,
+    /// PMT-based repayments, and (when applicable) offset account deposits.
+    /// Uses <see cref="HomeLoanInterestCalculator"/> static methods to ensure seed data
+    /// matches the real nightly interest accrual logic exactly.
+    /// When <paramref name="offsetIsEveryday"/> is true, the offset account IS the everyday
+    /// account and its balance is derived from the everyday transaction history.
+    /// </summary>
+    private static (List<Transaction> Txns, ScheduledPaymentSeed Schedule) GenerateHomeLoanHistory(
+        Random rng, Account homeLoan, Account offset, Account everydayAccount,
+        HomeLoanSeedConfig config, decimal loanAmount, decimal interestRate,
+        CustomerProfile profile, DateTime now,
+        bool offsetIsEveryday, Dictionary<DateOnly, decimal>? offsetMonthlyBalances)
+    {
+        var txns = new List<Transaction>();
+        var accountStart = profile.Customer.CreatedAt;
+
+        // Loan drawdown — sets initial debt
+        txns.Add(MakeTxn(homeLoan.Id, -loanAmount, "LOAN DRAWDOWN",
+            TransactionType.Deposit, accountStart));
+
+        // When offset is NOT the everyday account, seed a standalone opening deposit + top-ups.
+        // When it IS the everyday account, salary/spending already flow through it.
+        decimal manualOffsetBalance = 0;
+        if (!offsetIsEveryday)
+        {
+            var initialOffset = Math.Round(RandomDecimal(rng, config.OffsetMin, config.OffsetMax) / 100m) * 100m;
+            txns.Add(MakeTxn(offset.Id, initialOffset, "OPENING DEPOSIT",
+                TransactionType.Deposit, accountStart.AddHours(1)));
+            manualOffsetBalance = initialOffset;
+        }
+
+        // Monthly repayment via the same PMT formula the calculator uses
+        var monthlyRepayment = HomeLoanInterestCalculator.CalculateMonthlyRepayment(
+            loanAmount, interestRate, config.TermMonths);
+
+        // Track loan balance (negative = debt) — mirrors how the real system tracks Account.Balance.
+        var loanBalance = -loanAmount;
+
+        var loanStartDay = DateOnly.FromDateTime(accountStart);
+        var startMonth = new DateOnly(accountStart.Year, accountStart.Month, 1);
+        var firstPostingMonth = startMonth.AddMonths(1);
+        var endDate = DateOnly.FromDateTime(now.AddDays(-1));
+
+        // Average monthly offset top-up (only for separate-offset customers)
+        var baseOffsetTopUp = !offsetIsEveryday
+            ? profile.Persona.Name switch
+            {
+                "Established Professional" => RandomDecimal(rng, 500m, 2000m),
+                "Young Family" => RandomDecimal(rng, 200m, 800m),
+                "Young Professional" => RandomDecimal(rng, 100m, 500m),
+                _ => 0m,
+            }
+            : 0m;
+
+        // Track cumulative repayments debited from the offset (when it's the everyday account)
+        // so we can adjust its balance for interest calculations.
+        var cumulativeOffsetDebits = 0m;
+
+        var postingMonth = firstPostingMonth;
+        while (postingMonth <= endDate && loanBalance < 0)
+        {
+            var accrualMonth = postingMonth.AddMonths(-1);
+            var daysInAccrualMonth = DateTime.DaysInMonth(accrualMonth.Year, accrualMonth.Month);
+            var accrualDays = accrualMonth == startMonth
+                ? daysInAccrualMonth - loanStartDay.Day + 1
+                : daysInAccrualMonth;
+
+            // Determine offset balance for interest calculation
+            decimal offsetBalance;
+            if (offsetIsEveryday && offsetMonthlyBalances != null)
+            {
+                // Use actual offset balance from everyday transactions, minus loan debits already made
+                var everydayBal = GetLastBalanceAtOrBefore(offsetMonthlyBalances, accrualMonth);
+                offsetBalance = Math.Max(0, everydayBal - cumulativeOffsetDebits);
+            }
+            else
+            {
+                offsetBalance = manualOffsetBalance;
+            }
+
+            // Daily interest using the SAME formula as the real HomeLoanInterestCalculator
+            var principal = Math.Max(0, -loanBalance);
+            var dailyInterest = HomeLoanInterestCalculator.CalculateDailyInterest(
+                principal, offsetBalance, interestRate);
+            var monthlyInterest = Math.Round(dailyInterest * accrualDays, 2);
+
+            var postDate = new DateTime(postingMonth.Year, postingMonth.Month, postingMonth.Day,
+                9, 0, 0, DateTimeKind.Utc);
+
+            if (monthlyInterest != 0)
+            {
+                txns.Add(MakeTxn(homeLoan.Id, monthlyInterest,
+                    $"Interest Charged — {accrualMonth:MMMM yyyy}",
+                    TransactionType.Interest, postDate));
+                loanBalance += monthlyInterest;
+            }
+
+            // Repayment: debit everyday account (offset or transaction), credit home loan
+            var repaymentDate = postDate.AddHours(1);
+            txns.Add(MakeTxn(homeLoan.Id, monthlyRepayment,
+                "HOME LOAN REPAYMENT", TransactionType.Repayment, repaymentDate));
+            txns.Add(MakeTxn(everydayAccount.Id, -monthlyRepayment,
+                "HOME LOAN REPAYMENT", TransactionType.Repayment, repaymentDate));
+            loanBalance += monthlyRepayment;
+
+            if (offsetIsEveryday)
+                cumulativeOffsetDebits += monthlyRepayment;
+
+            // Offset top-ups only when offset is a separate account
+            if (!offsetIsEveryday && baseOffsetTopUp > 0 && rng.NextDouble() < 0.6)
+            {
+                var topUp = Math.Round(baseOffsetTopUp * RandomDecimal(rng, 0.5m, 1.5m), 2);
+                var topUpDate = postDate.AddDays(rng.Next(1, 15));
+                if (DateOnly.FromDateTime(topUpDate) <= endDate)
+                {
+                    txns.Add(MakeTxn(offset.Id, topUp, "TRANSFER FROM EVERYDAY",
+                        TransactionType.Transfer, topUpDate));
+                    txns.Add(MakeTxn(everydayAccount.Id, -topUp, "TRANSFER TO OFFSET",
+                        TransactionType.Transfer, topUpDate));
+                    manualOffsetBalance += topUp;
+                }
+            }
+
+            postingMonth = postingMonth.AddMonths(1);
+        }
+
+        // Scheduled repayment for future months
+        var nextDue = postingMonth > endDate ? postingMonth : postingMonth.AddMonths(1);
+        var schedule = new ScheduledPaymentSeed(
+            everydayAccount.Id, "HOME LOAN REPAYMENT", monthlyRepayment,
+            "HOME LOAN REPAYMENT", ScheduleFrequency.Monthly,
+            new DateTime(nextDue.Year, nextDue.Month, nextDue.Day, 10, 0, 0, DateTimeKind.Utc),
+            homeLoan.Id);
+
+        return (txns, schedule);
+    }
+
+    /// <summary>
+    /// Find the last balance snapshot at or before the given month.
+    /// </summary>
+    private static decimal GetLastBalanceAtOrBefore(Dictionary<DateOnly, decimal> snapshots, DateOnly month)
+    {
+        var best = 0m;
+        foreach (var kvp in snapshots)
+        {
+            if (kvp.Key <= month)
+                best = kvp.Value;
+        }
+        return best;
+    }
+
     private static List<RecurringPayment> BuildRecurringPayments(
-        Random rng, CustomerProfile profile, DateTime accountStart)
+        Random rng, CustomerProfile profile, DateTime accountStart, bool hasHomeLoan)
     {
         var payments = new List<RecurringPayment>();
         var persona = profile.Persona;
 
-        // Rent
-        if (rng.NextDouble() < persona.RentLikelihood && persona.RentRange.Max > 0)
+        // Rent (skip if customer has a home loan — they're a homeowner)
+        if (!hasHomeLoan && rng.NextDouble() < persona.RentLikelihood && persona.RentRange.Max > 0)
         {
             var rentAmount = RandomDecimal(rng, persona.RentRange.Min, persona.RentRange.Max);
             var isScheduled = rng.NextDouble() < 0.7;
@@ -740,6 +1026,7 @@ public static class SeedData
             {
                 AccountId = s.AccountId,
                 PayeeName = s.PayeeName,
+                PayeeAccountId = s.PayeeAccountId,
                 Amount = s.Amount,
                 Description = s.Description,
                 Frequency = s.Frequency,
@@ -951,7 +1238,8 @@ public static class SeedData
         decimal Amount,
         string Description,
         ScheduleFrequency Frequency,
-        DateTime FirstBillingDate);
+        DateTime FirstBillingDate,
+        int? PayeeAccountId = null);
 
     private class RecurringPayment(
         string payeeName,
@@ -982,4 +1270,11 @@ public static class SeedData
             };
         }
     }
+
+    private sealed record HomeLoanSeedConfig(
+        decimal LoanMin, decimal LoanMax,
+        decimal RateMin, decimal RateMax,
+        int TermMonths,
+        double Likelihood,
+        decimal OffsetMin, decimal OffsetMax);
 }

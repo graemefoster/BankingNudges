@@ -1,6 +1,7 @@
 import type { NudgeDto } from '../types';
 import { respondToNudge } from '../api/bankApi';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface Props {
   nudge: NudgeDto;
@@ -15,13 +16,18 @@ const urgencyConfig: Record<string, { border: string; bg: string; icon: string }
 
 export default function NudgeCard({ nudge, onDismissed }: Props) {
   const [responding, setResponding] = useState(false);
+  const navigate = useNavigate();
   const config = urgencyConfig[nudge.urgency] ?? urgencyConfig.MEDIUM;
 
   const handleRespond = async (action: string) => {
     setResponding(true);
     try {
       await respondToNudge(nudge.id, action);
-      onDismissed();
+      if (action === 'ACCEPTED') {
+        navigate(`/nudge/${nudge.id}`);
+      } else {
+        onDismissed();
+      }
     } catch {
       setResponding(false);
     }

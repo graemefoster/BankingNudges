@@ -18,6 +18,13 @@ export default function AccountDetailPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [descriptionFilter, setDescriptionFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [minAmount, setMinAmount] = useState('');
+  const [maxAmount, setMaxAmount] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [scheduledPayments, setScheduledPayments] = useState<ScheduledPayment[]>([]);
 
@@ -50,11 +57,19 @@ export default function AccountDetailPage() {
     }
   }, [accountId]);
 
+  const activeFilterCount = [typeFilter, statusFilter, descriptionFilter, dateFrom, dateTo, minAmount, maxAmount].filter(Boolean).length;
+
   const loadTransactions = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getTransactions(accountId, {
         type: typeFilter || undefined,
+        status: statusFilter || undefined,
+        description: descriptionFilter || undefined,
+        from: dateFrom || undefined,
+        to: dateTo || undefined,
+        minAmount: minAmount ? parseFloat(minAmount) : undefined,
+        maxAmount: maxAmount ? parseFloat(maxAmount) : undefined,
         page,
       });
       setTransactions(data.transactions);
@@ -64,7 +79,18 @@ export default function AccountDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [accountId, typeFilter, page]);
+  }, [accountId, typeFilter, statusFilter, descriptionFilter, dateFrom, dateTo, minAmount, maxAmount, page]);
+
+  const clearFilters = () => {
+    setTypeFilter('');
+    setStatusFilter('');
+    setDescriptionFilter('');
+    setDateFrom('');
+    setDateTo('');
+    setMinAmount('');
+    setMaxAmount('');
+    setPage(1);
+  };
 
   useEffect(() => { loadAccount(); loadScheduledPayments(); }, [loadAccount, loadScheduledPayments]);
   useEffect(() => { loadTransactions(); }, [loadTransactions]);
@@ -303,21 +329,125 @@ export default function AccountDetailPage() {
       {/* Transactions */}
       <fieldset>
         <legend>Transaction History</legend>
+
+        {/* Filter toolbar */}
         <div className="mb-2 flex items-center gap-2 text-xs">
-          <label className="text-text-secondary">Filter by type:</label>
-          <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-            className="px-1 py-0.5 border border-border text-xs bg-white">
-            <option value="">All</option>
-            <option value="Deposit">Deposit</option>
-            <option value="Withdrawal">Withdrawal</option>
-            <option value="Transfer">Transfer</option>
-            <option value="Interest">Interest</option>
-            <option value="Repayment">Repayment</option>
-            <option value="Adjustment">Adjustment</option>
-            <option value="DirectDebit">Direct Debit</option>
-          </select>
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            className="px-2 py-0.5 bg-white border border-border hover:bg-gray-100 cursor-pointer font-bold"
+          >
+            {showFilters ? '▾ Filters' : '▸ Filters'}
+            {activeFilterCount > 0 && (
+              <span className="ml-1 inline-block px-1.5 py-0 rounded-full bg-crm-dark text-white text-[10px] font-bold">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+          {activeFilterCount > 0 && (
+            <button
+              onClick={clearFilters}
+              className="px-2 py-0.5 text-red-700 underline hover:no-underline cursor-pointer"
+            >
+              Clear all
+            </button>
+          )}
           <span className="text-text-secondary ml-auto">{total} record(s)</span>
         </div>
+
+        {/* Expandable filter panel */}
+        {showFilters && (
+          <div className="mb-3 p-2 bg-gray-50 border border-border">
+            <table className="text-xs w-full">
+              <tbody>
+                <tr>
+                  <td className="px-2 py-1 font-bold w-28">Description</td>
+                  <td className="px-2 py-1" colSpan={3}>
+                    <input
+                      type="text"
+                      value={descriptionFilter}
+                      onChange={(e) => { setDescriptionFilter(e.target.value); setPage(1); }}
+                      placeholder="Search description..."
+                      className="w-full px-1 py-0.5 border border-border text-xs"
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-2 py-1 font-bold">Type</td>
+                  <td className="px-2 py-1">
+                    <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+                      className="w-full px-1 py-0.5 border border-border text-xs bg-white">
+                      <option value="">All</option>
+                      <option value="Deposit">Deposit</option>
+                      <option value="Withdrawal">Withdrawal</option>
+                      <option value="Transfer">Transfer</option>
+                      <option value="Interest">Interest</option>
+                      <option value="Repayment">Repayment</option>
+                      <option value="Adjustment">Adjustment</option>
+                      <option value="DirectDebit">Direct Debit</option>
+                    </select>
+                  </td>
+                  <td className="px-2 py-1 font-bold w-28">Status</td>
+                  <td className="px-2 py-1">
+                    <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                      className="w-full px-1 py-0.5 border border-border text-xs bg-white">
+                      <option value="">All</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Settled">Settled</option>
+                      <option value="Reversed">Reversed</option>
+                      <option value="Failed">Failed</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-2 py-1 font-bold">Date from</td>
+                  <td className="px-2 py-1">
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+                      className="w-full px-1 py-0.5 border border-border text-xs"
+                    />
+                  </td>
+                  <td className="px-2 py-1 font-bold">Date to</td>
+                  <td className="px-2 py-1">
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+                      className="w-full px-1 py-0.5 border border-border text-xs"
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-2 py-1 font-bold">Min amount</td>
+                  <td className="px-2 py-1">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={minAmount}
+                      onChange={(e) => { setMinAmount(e.target.value); setPage(1); }}
+                      placeholder="0.00"
+                      className="w-full px-1 py-0.5 border border-border text-xs font-mono"
+                    />
+                  </td>
+                  <td className="px-2 py-1 font-bold">Max amount</td>
+                  <td className="px-2 py-1">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={maxAmount}
+                      onChange={(e) => { setMaxAmount(e.target.value); setPage(1); }}
+                      placeholder="0.00"
+                      className="w-full px-1 py-0.5 border border-border text-xs font-mono"
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
 
         <table className="w-full text-xs bg-white">
           <thead>

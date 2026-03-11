@@ -6,6 +6,8 @@ import AccountDetailPage from './pages/AccountDetailPage'
 import TransferPage from './pages/TransferPage'
 import PayPage from './pages/PayPage'
 import ScheduledPaymentsPage from './pages/ScheduledPaymentsPage'
+import NudgeInsightPage from './pages/NudgeInsightPage'
+import NudgeHistoryPage from './pages/NudgeHistoryPage'
 
 export default function App() {
   return (
@@ -17,6 +19,8 @@ export default function App() {
         <Route path="/transfer" element={<TransferPage />} />
         <Route path="/pay" element={<PayPage />} />
         <Route path="/scheduled" element={<ScheduledPaymentsPage />} />
+        <Route path="/nudge/:id" element={<NudgeInsightPage />} />
+        <Route path="/insights" element={<NudgeHistoryPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

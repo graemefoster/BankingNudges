@@ -27,8 +27,21 @@ public static class AccountEndpoints
             });
         });
 
-        group.MapGet("/{id:int}/transactions", async (int id, AccountService svc, int page = 1, int pageSize = 20) =>
-            Results.Ok(await svc.GetTransactionsAsync(id, page, pageSize)));
+        group.MapGet("/{id:int}/transactions", async (
+            int id, AccountService svc,
+            int page = 1, int pageSize = 20,
+            string? search = null, string? category = null,
+            DateTime? from = null, DateTime? to = null) =>
+        {
+            var transactions = await svc.GetTransactionsAsync(id, page, pageSize, search, category, from, to);
+            return Results.Ok(transactions.Select(t => new
+            {
+                t.Id, t.Amount, t.Description, t.TransactionType, t.Status,
+                t.FailureReason, t.SettledAt, t.CreatedAt,
+                MerchantCategory = MerchantCategoryMapper.Categorise(t.Description),
+                MerchantLogoUrl = MerchantCategoryMapper.GetMerchantLogoUrl(t.Description)
+            }));
+        });
 
         group.MapPost("/{id:int}/deposit", async (int id, DepositRequest req, AccountService svc) =>
         {

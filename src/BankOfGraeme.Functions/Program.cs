@@ -1,5 +1,6 @@
 using BankOfGraeme.Api.Data;
 using BankOfGraeme.Api.Services;
+using BankOfGraeme.Api.Services.InterestCalculation;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,6 +12,9 @@ builder.Services.AddDbContext<BankDbContext>(options =>
     options.UseNpgsql(builder.Configuration["ConnectionStrings:DefaultConnection"]));
 
 builder.Services.AddScoped<IDateTimeProvider, DatabaseDateTimeProvider>();
+builder.Services.AddScoped<IAccountInterestCalculator, HomeLoanInterestCalculator>();
+builder.Services.AddScoped<IAccountInterestCalculator, SavingsAccountInterestCalculator>();
+builder.Services.AddScoped<IAccountInterestCalculator, TransactionAccountInterestCalculator>();
 builder.Services.AddScoped<InterestCalculationService>();
 builder.Services.AddScoped<SettlementService>();
 builder.Services.AddScoped<ScheduledPaymentService>();

@@ -53,6 +53,8 @@ export interface Transaction {
   transactionType: TransactionType;
   status: TransactionStatus;
   failureReason: string | null;
+  merchantCategory: string;
+  merchantLogoUrl: string | null;
   settledAt: string | null;
   createdAt: string;
 }
@@ -141,3 +143,75 @@ export interface NudgeGenerateResult {
   nudge: NudgeDto | null;
   reason: string | null;
 }
+
+export interface NudgeHistoryItem {
+  id: number;
+  message: string;
+  cta: string;
+  urgency: string;
+  category: string;
+  status: string;
+  reasoning: string;
+  createdAt: string;
+  respondedAt: string | null;
+}
+
+export interface NudgeInsightFinancial {
+  currentBalance: number;
+  avgMonthlyIncome: number;
+  spendByCategory: Record<string, number>;
+  spendDelta: Record<string, number>;
+  daysUntilLikelyPayday: number;
+}
+
+export interface NudgeInsightPayment {
+  merchant: string;
+  amount: number;
+  dueInDays: number;
+  confidence: string;
+  source: string;
+}
+
+export interface NudgeInsightSignal {
+  type: string;
+  severity: string;
+  category: string | null;
+  delta: number | null;
+  paymentMerchant: string | null;
+  paymentAmount: number | null;
+  dueInDays: number | null;
+}
+
+export interface NudgeInsightContext {
+  financial: NudgeInsightFinancial;
+  upcoming: NudgeInsightPayment[];
+  signals: NudgeInsightSignal[];
+}
+
+export interface NudgeDetailDto {
+  id: number;
+  message: string;
+  cta: string;
+  urgency: string;
+  category: string;
+  reasoning: string;
+  status: string;
+  createdAt: string;
+  respondedAt: string | null;
+}
+
+export interface NudgeInsightResponse {
+  nudge: NudgeDetailDto;
+  context: NudgeInsightContext;
+}
+
+export interface TransactionFilters {
+  search?: string;
+  category?: string;
+  from?: string;
+  to?: string;
+}
+
+export const merchantCategories = [
+  'Groceries', 'Fuel', 'Dining', 'Bars', 'Transport', 'Health', 'Retail', 'Utilities', 'Other'
+] as const;

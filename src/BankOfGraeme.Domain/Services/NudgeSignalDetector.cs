@@ -39,40 +39,54 @@ public class NudgeSignalDetector
         int daysUntilPayday)
     {
         var signals = new List<NudgeSignal>();
+        var totalUpcoming = upcomingPayments.Sum(p => p.Amount);
+        var canComfortablyCoverUpcoming = totalUpcoming == 0 || currentBalance >= totalUpcoming * 2m;
+        var balanceIsHealthy = canComfortablyCoverUpcoming
+                               && avgMonthlyExpenses > 0
+                               && currentBalance > avgMonthlyExpenses * 1.5m;
 
         if (currentBalance < LowBalanceThreshold)
         {
             signals.Add(new NudgeSignal(SignalType.LOW_BALANCE, SignalSeverity.HIGH));
         }
 
-        var totalUpcoming = upcomingPayments.Sum(p => p.Amount);
         if (currentBalance < totalUpcoming * 1.1m)
         {
             signals.Add(new NudgeSignal(SignalType.CANT_COVER_UPCOMING, SignalSeverity.HIGH));
         }
 
-        foreach (var payment in upcomingPayments)
+        // Only flag imminent payments when the balance is tight
+        if (!canComfortablyCoverUpcoming)
         {
-            if (payment.DueInDays <= 2)
+            foreach (var payment in upcomingPayments)
             {
-                signals.Add(new NudgeSignal(
-                    SignalType.PAYMENT_DUE_SOON,
-                    SignalSeverity.MEDIUM,
-                    PaymentMerchant: payment.Merchant,
-                    PaymentAmount: payment.Amount,
-                    DueInDays: payment.DueInDays));
+                if (payment.DueInDays <= 2)
+                {
+                    signals.Add(new NudgeSignal(
+                        SignalType.PAYMENT_DUE_SOON,
+                        SignalSeverity.MEDIUM,
+                        PaymentMerchant: payment.Merchant,
+                        PaymentAmount: payment.Amount,
+                        DueInDays: payment.DueInDays));
+                }
             }
         }
 
-        foreach (var (category, delta) in spendDelta)
+        // Only flag spend spikes when the customer's balance is under pressure.
+        // When the balance is healthy there's no reason to nag about higher spending.
+        if (!balanceIsHealthy)
         {
-            if (delta > SpendSpikeThreshold)
+            foreach (var (category, delta) in spendDelta)
             {
-                signals.Add(new NudgeSignal(
-                    SignalType.SPEND_SPIKE,
-                    SignalSeverity.MEDIUM,
-                    Category: category,
-                    Delta: delta));
+                if (delta > SpendSpikeThreshold)
+                {
+                    var severity = canComfortablyCoverUpcoming ? SignalSeverity.LOW : SignalSeverity.MEDIUM;
+                    signals.Add(new NudgeSignal(
+                        SignalType.SPEND_SPIKE,
+                        severity,
+                        Category: category,
+                        Delta: delta));
+                }
             }
         }
 

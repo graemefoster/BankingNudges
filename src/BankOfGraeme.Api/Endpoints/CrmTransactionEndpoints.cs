@@ -14,7 +14,8 @@ public static class CrmTransactionEndpoints
             .AddEndpointFilter(StaffAuthFilter);
 
         group.MapGet("/", async (int accountId, BankDbContext db,
-            string? type, DateTime? from, DateTime? to,
+            string? type, string? status, string? description,
+            DateTime? from, DateTime? to,
             decimal? minAmount, decimal? maxAmount,
             int page = 1, int pageSize = 20) =>
         {
@@ -24,6 +25,12 @@ public static class CrmTransactionEndpoints
 
             if (!string.IsNullOrWhiteSpace(type) && Enum.TryParse<TransactionType>(type, true, out var txnType))
                 query = query.Where(t => t.TransactionType == txnType);
+
+            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<TransactionStatus>(status, true, out var txnStatus))
+                query = query.Where(t => t.Status == txnStatus);
+
+            if (!string.IsNullOrWhiteSpace(description))
+                query = query.Where(t => EF.Functions.Like(t.Description, $"%{description}%"));
 
             if (from.HasValue)
                 query = query.Where(t => t.CreatedAt >= from.Value);

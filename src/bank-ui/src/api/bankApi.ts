@@ -1,4 +1,4 @@
-import type { Account, Customer, Transaction, ScheduledPayment } from '../types';
+import type { Account, Customer, Transaction, ScheduledPayment, NudgeInsightResponse, NudgeHistoryItem, TransactionFilters } from '../types';
 
 const BASE = '/api';
 
@@ -8,7 +8,9 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
     const text = await res.text().catch(() => res.statusText);
     throw new Error(text || `Request failed: ${res.status}`);
   }
-  return res.json() as Promise<T>;
+  const text = await res.text();
+  if (!text) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 export interface CustomerPage {
@@ -42,9 +44,18 @@ export function getTransactions(
   accountId: string,
   page = 1,
   pageSize = 20,
+  filters?: TransactionFilters,
 ): Promise<Transaction[]> {
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+  });
+  if (filters?.search) params.set('search', filters.search);
+  if (filters?.category) params.set('category', filters.category);
+  if (filters?.from) params.set('from', filters.from);
+  if (filters?.to) params.set('to', filters.to);
   return fetchJson<Transaction[]>(
-    `${BASE}/accounts/${accountId}/transactions?page=${page}&pageSize=${pageSize}`,
+    `${BASE}/accounts/${accountId}/transactions?${params}`,
   );
 }
 
@@ -141,4 +152,12 @@ export function respondToNudge(nudgeId: number, action: string): Promise<void> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action }),
   });
+}
+
+export function getNudgeInsight(nudgeId: number): Promise<NudgeInsightResponse> {
+  return fetchJson<NudgeInsightResponse>(`${BASE}/nudges/${nudgeId}/insight`);
+}
+
+export function getNudgeHistory(customerId: string): Promise<NudgeHistoryItem[]> {
+  return fetchJson<NudgeHistoryItem[]>(`${BASE}/nudges/${customerId}/history`);
 }

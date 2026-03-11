@@ -323,13 +323,36 @@ public class AccountService(BankDbContext db, IDateTimeProvider dateTime)
         return txn;
     }
 
-    public async Task<List<Transaction>> GetTransactionsAsync(int accountId, int page = 1, int pageSize = 20)
+    public async Task<List<Transaction>> GetTransactionsAsync(
+        int accountId, int page = 1, int pageSize = 20,
+        string? search = null, string? category = null,
+        DateTime? from = null, DateTime? to = null)
     {
-        return await db.Transactions
-            .Where(t => t.AccountId == accountId && t.Status != TransactionStatus.Reversed)
+        var query = db.Transactions
+            .Where(t => t.AccountId == accountId && t.Status != TransactionStatus.Reversed);
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(t => EF.Functions.Like(t.Description, $"%{search}%"));
+
+        if (from.HasValue)
+            query = query.Where(t => t.CreatedAt >= from.Value);
+        if (to.HasValue)
+            query = query.Where(t => t.CreatedAt < to.Value);
+
+        var transactions = await query
             .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync();
+
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            transactions = transactions
+                .Where(t => MerchantCategoryMapper.Categorise(t.Description) == category)
+                .ToList();
+        }
+
+        return transactions
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToListAsync();
+            .ToList();
     }
 }
