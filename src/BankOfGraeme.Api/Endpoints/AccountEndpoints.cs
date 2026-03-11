@@ -22,7 +22,7 @@ public static class AccountEndpoints
                 AvailableBalance = availableBalance,
                 account.IsActive, account.CreatedAt,
                 account.LoanAmount, account.InterestRate, account.LoanTermMonths,
-                account.HomeLoanAccountId,
+                account.HomeLoanAccountId, account.BonusInterestRate,
                 OffsetAccounts = account.OffsetAccounts.Select(o => new { o.Id, o.Name, o.Balance })
             });
         });

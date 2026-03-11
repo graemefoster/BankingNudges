@@ -73,6 +73,7 @@ public class BankDbContext : DbContext
             e.Property(a => a.Balance).HasPrecision(18, 2);
             e.Property(a => a.LoanAmount).HasPrecision(18, 2);
             e.Property(a => a.InterestRate).HasPrecision(5, 2);
+            e.Property(a => a.BonusInterestRate).HasPrecision(5, 2);
 
             e.HasOne(a => a.Customer)
                 .WithMany(c => c.Accounts)

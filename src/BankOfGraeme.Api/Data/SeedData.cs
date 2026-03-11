@@ -12,6 +12,21 @@ public static class SeedData
     private const string Bsb = "062-000";
     private const int TransactionBatchSize = 5_000;
     private const decimal TransactionInterestRate = 3.00m;
+    private const decimal SavingsInterestRate = 5.00m;
+    private const decimal SavingsBonusInterestRate = 4.50m;
+
+    // Savings account seed configuration per persona
+    private static readonly Dictionary<string, SavingsSeedConfig> SavingsConfigs = new()
+    {
+        ["Student"] = new(0.25, 200m, 1000m, 50m, 150m, 0.60, 0.40, 50m, 500m),
+        ["Zero-Hours Worker"] = new(0.10, 100m, 500m, 30m, 100m, 0.40, 0.50, 50m, 300m),
+        ["Young Professional"] = new(0.55, 2000m, 8000m, 400m, 1000m, 0.90, 0.15, 500m, 3000m),
+        ["Established Professional"] = new(0.60, 10000m, 40000m, 800m, 2500m, 0.95, 0.10, 1000m, 8000m),
+        ["Young Family"] = new(0.40, 3000m, 12000m, 200m, 600m, 0.85, 0.30, 500m, 3000m),
+        ["Single Parent"] = new(0.15, 500m, 2000m, 50m, 200m, 0.50, 0.55, 200m, 1000m),
+        ["Comfortable Retiree"] = new(0.80, 30000m, 120000m, 200m, 800m, 0.85, 0.08, 1000m, 5000m),
+        ["Modest Retiree"] = new(0.50, 5000m, 20000m, 50m, 200m, 0.75, 0.25, 500m, 2000m),
+    };
 
     // Home loan seed configuration per persona
     private static readonly Dictionary<string, HomeLoanSeedConfig> HomeLoanConfigs = new()
@@ -157,6 +172,18 @@ public static class SeedData
     ];
 
     private static readonly string[] CarInsuranceProviders = ["NRMA", "AAMI", "ALLIANZ", "SUNCORP", "RACV"];
+
+    private static readonly Dictionary<string, string[]> SavingsWithdrawalReasons = new()
+    {
+        ["Student"] = ["TEXTBOOKS", "LAPTOP", "CONCERT TICKETS", "UNI FEES"],
+        ["Zero-Hours Worker"] = ["EMERGENCY", "BOND PAYMENT", "CAR REPAIR"],
+        ["Young Professional"] = ["HOLIDAY", "FURNITURE", "COURSE FEES"],
+        ["Established Professional"] = ["HOME RENOVATION", "HOLIDAY", "INVESTMENT"],
+        ["Young Family"] = ["SCHOOL FEES", "FAMILY HOLIDAY", "APPLIANCES", "CAR SERVICE"],
+        ["Single Parent"] = ["CAR REPAIR", "SCHOOL FEES", "MEDICAL"],
+        ["Comfortable Retiree"] = ["HOLIDAY", "HOME MAINTENANCE", "GIFT"],
+        ["Modest Retiree"] = ["DENTAL", "HOME REPAIR", "MEDICAL", "SPECTACLES"],
+    };
 
     public static void Seed(BankDbContext db, IDateTimeProvider dateTime)
     {
@@ -358,6 +385,37 @@ public static class SeedData
                         FlushTransactions(db, transactionBuffer);
                 }
                 scheduledPayments.Add(loanSchedule);
+            }
+
+            // === SAVINGS ACCOUNT ===
+            var hasSavings = SavingsConfigs.TryGetValue(profile.Persona.Name, out var savingsConfig)
+                && rng.NextDouble() < savingsConfig.Likelihood;
+
+            if (hasSavings)
+            {
+                var savingsAccount = new Account
+                {
+                    CustomerId = profile.Customer.Id,
+                    AccountType = AccountType.Savings,
+                    Bsb = Bsb,
+                    AccountNumber = (accountNumber++).ToString(),
+                    Name = "Savings",
+                    Balance = 0m,
+                    IsActive = true,
+                    InterestRate = SavingsInterestRate,
+                    BonusInterestRate = SavingsBonusInterestRate,
+                };
+                db.Accounts.Add(savingsAccount);
+                db.SaveChanges();
+
+                var savingsTxns = GenerateSavingsHistory(
+                    rng, savingsAccount, everydayAccount, savingsConfig!, profile, now);
+                foreach (var txn in savingsTxns)
+                {
+                    transactionBuffer.Add(txn);
+                    if (transactionBuffer.Count >= TransactionBatchSize)
+                        FlushTransactions(db, transactionBuffer);
+                }
             }
         }
 
@@ -792,6 +850,98 @@ public static class SeedData
                 best = kvp.Value;
         }
         return best;
+    }
+
+    /// <summary>
+    /// Generate savings account transaction history: opening deposit, monthly transfers
+    /// from the everyday account, and occasional withdrawals back to everyday.
+    /// Both legs of each transfer are generated (debit + credit).
+    /// Withdrawal frequency is persona-dependent and determines whether the customer
+    /// earns bonus interest for that month (Australian-style conditional rate).
+    /// </summary>
+    private static List<Transaction> GenerateSavingsHistory(
+        Random rng, Account savings, Account everydayAccount,
+        SavingsSeedConfig config, CustomerProfile profile, DateTime now)
+    {
+        var txns = new List<Transaction>();
+        var accountStart = profile.Customer.CreatedAt;
+        var persona = profile.Persona;
+        var dayEnd = now.AddDays(-1);
+
+        // Opening deposit (external funds, not from everyday account)
+        var openingDeposit = RandomDecimal(rng, config.OpeningMin, config.OpeningMax);
+        txns.Add(MakeTxn(savings.Id, openingDeposit, "Opening deposit",
+            TransactionType.Deposit, accountStart));
+        var savingsBalance = openingDeposit;
+
+        // Walk through months from account start
+        var firstMonth = new DateOnly(accountStart.Year, accountStart.Month, 1).AddMonths(1);
+        var endMonth = new DateOnly(dayEnd.Year, dayEnd.Month, 1);
+        var currentMonth = firstMonth;
+
+        // Determine payday schedule to time transfers appropriately
+        var nextPayDay = FindFirstPayDay(accountStart, persona.IncomeFrequency);
+        while (nextPayDay < accountStart.AddMonths(1))
+            nextPayDay = AdvanceByIncomeFrequency(nextPayDay, persona.IncomeFrequency);
+
+        while (currentMonth <= endMonth)
+        {
+            var monthDate = new DateTime(currentMonth.Year, currentMonth.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+
+            // === MONTHLY DEPOSIT (transfer from everyday → savings) ===
+            if (rng.NextDouble() < config.TransferLikelihood)
+            {
+                var transferAmount = RandomDecimal(rng, config.MonthlyTransferMin, config.MonthlyTransferMax);
+                // Transfer happens 1-3 days after start of month (around payday)
+                var transferDay = rng.Next(1, 4);
+                var daysInMonth = DateTime.DaysInMonth(currentMonth.Year, currentMonth.Month);
+                transferDay = Math.Min(transferDay, daysInMonth);
+                var transferDate = monthDate.AddDays(transferDay).AddHours(rng.Next(10, 15)).AddMinutes(rng.Next(0, 60));
+
+                if (transferDate <= dayEnd)
+                {
+                    txns.Add(MakeTxn(savings.Id, transferAmount, "Transfer from Everyday",
+                        TransactionType.Transfer, transferDate));
+                    txns.Add(MakeTxn(everydayAccount.Id, -transferAmount, "Transfer to Savings",
+                        TransactionType.Transfer, transferDate));
+                    savingsBalance += transferAmount;
+                }
+            }
+
+            // === OCCASIONAL WITHDRAWAL (savings → everyday) ===
+            if (rng.NextDouble() < config.WithdrawalLikelihood)
+            {
+                var withdrawalAmount = RandomDecimal(rng, config.WithdrawalMin, config.WithdrawalMax);
+                withdrawalAmount = Math.Min(withdrawalAmount, savingsBalance * 0.8m); // Don't drain the account
+                withdrawalAmount = Math.Round(withdrawalAmount, 2);
+
+                if (withdrawalAmount >= 10m && savingsBalance > withdrawalAmount)
+                {
+                    var reasons = SavingsWithdrawalReasons.GetValueOrDefault(persona.Name,
+                        ["TRANSFER"]);
+                    var reason = reasons[rng.Next(reasons.Length)];
+                    var withdrawDay = rng.Next(5, 25);
+                    var daysInMonth = DateTime.DaysInMonth(currentMonth.Year, currentMonth.Month);
+                    withdrawDay = Math.Min(withdrawDay, daysInMonth);
+                    var withdrawDate = monthDate.AddDays(withdrawDay).AddHours(rng.Next(10, 16)).AddMinutes(rng.Next(0, 60));
+
+                    if (withdrawDate <= dayEnd)
+                    {
+                        txns.Add(MakeTxn(savings.Id, -withdrawalAmount,
+                            $"Transfer to Everyday - {reason}",
+                            TransactionType.Transfer, withdrawDate));
+                        txns.Add(MakeTxn(everydayAccount.Id, withdrawalAmount,
+                            "Transfer from Savings",
+                            TransactionType.Transfer, withdrawDate));
+                        savingsBalance -= withdrawalAmount;
+                    }
+                }
+            }
+
+            currentMonth = currentMonth.AddMonths(1);
+        }
+
+        return txns;
     }
 
     private static List<RecurringPayment> BuildRecurringPayments(
@@ -1277,4 +1427,12 @@ public static class SeedData
         int TermMonths,
         double Likelihood,
         decimal OffsetMin, decimal OffsetMax);
+
+    private sealed record SavingsSeedConfig(
+        double Likelihood,
+        decimal OpeningMin, decimal OpeningMax,
+        decimal MonthlyTransferMin, decimal MonthlyTransferMax,
+        double TransferLikelihood,
+        double WithdrawalLikelihood,
+        decimal WithdrawalMin, decimal WithdrawalMax);
 }

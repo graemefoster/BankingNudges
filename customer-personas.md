@@ -1,8 +1,20 @@
 # Bank of Graeme — Seeded Customer Personas (Featured 8 of 150)
 
-These are 8 spotlight customers from the seeded 150-customer dataset. All customers have a single **Everyday Transaction** account with 3% p.a. interest (accrued daily, paid monthly). The bank opened on **2 July 2023**.
+These are 8 spotlight customers from the seeded 150-customer dataset. All customers have a single **Everyday Transaction** account with 3% p.a. interest (accrued daily, paid monthly). Eligible personas may also have a **Savings** account and/or a **Home Loan + Offset** account. The bank opened on **2 July 2023**.
 
 The persona is stored on each customer record and visible in the CRM.
+
+### Savings Account Model
+
+The Bank of Graeme savings account uses an Australian-style **bonus interest** structure:
+
+| Component | Rate |
+|-----------|------|
+| Base rate (always paid) | 0.50% p.a. |
+| Bonus rate (conditional) | 4.50% p.a. |
+| **Total when bonus earned** | **5.00% p.a.** |
+
+**Bonus condition:** End-of-month balance must be ≥ start-of-month balance. If the balance drops during the month (e.g. a withdrawal), only the base rate is paid for that month — the bonus is forfeited.
 
 ---
 
@@ -10,6 +22,11 @@ The persona is stored on each customer record and visible in the CRM.
 
 - **Bank tenure:** ~2 months
 - **Account:** Everyday Transaction
+- **Savings Account:** ~25% chance (5.00% p.a. with bonus)
+  - Opening: $200–$1,000
+  - Monthly deposit: $50–$150 (irregular, ~60% of months)
+  - Withdrawals: ~40% of months (textbooks, concert tickets, laptop, uni fees)
+  - Typical balance: $300–$2,000
 - **Income:** Weekly casual wages ($280–580)
 - **Typical employers:** McDonald's, Woolworths, KFC, Subway
 - **Spending:** Fast food, Opal top-up, small retail, coffee
@@ -22,6 +39,11 @@ The persona is stored on each customer record and visible in the CRM.
 
 - **Bank tenure:** ~9 months
 - **Account:** Everyday Transaction
+- **Savings Account:** ~10% chance (5.00% p.a. with bonus)
+  - Opening: $100–$500
+  - Monthly deposit: $30–$100 (very irregular, ~40% of months)
+  - Withdrawals: ~50% of months (emergency, bond payment, car repair)
+  - Typical balance: $100–$800
 - **Income:** Weekly variable ($350–900, high variance)
 - **Typical employers:** Hospitality, retail, gig work
 - **Spending:** Groceries, dining, transport
@@ -34,6 +56,11 @@ The persona is stored on each customer record and visible in the CRM.
 
 - **Bank tenure:** ~13 months
 - **Account:** Everyday Transaction
+- **Savings Account:** ~55% chance (5.00% p.a. with bonus)
+  - Opening: $2,000–$8,000
+  - Monthly deposit: $400–$1,000 (~90% of months)
+  - Withdrawals: ~15% of months (holiday, furniture, course fees)
+  - Typical balance: $5,000–$25,000
 - **Home Loan:** ~25% chance ($400k–$600k, 5.99–6.49%, 30 year term)
 - **Offset Account:** Linked to home loan ($5k–$20k initial, monthly top-ups)
 - **Income:** Fortnightly salary ($2,500–3,500)
@@ -48,6 +75,11 @@ The persona is stored on each customer record and visible in the CRM.
 
 - **Bank tenure:** ~2 years
 - **Account:** Everyday Transaction
+- **Savings Account:** ~60% chance (5.00% p.a. with bonus)
+  - Opening: $10,000–$40,000
+  - Monthly deposit: $800–$2,500 (~95% of months)
+  - Withdrawals: ~10% of months (home renovation, holiday, investment)
+  - Typical balance: $20,000–$80,000
 - **Home Loan:** ~60% chance ($650k–$900k, 5.49–6.29%, 25–30 year term)
 - **Offset Account:** Linked to home loan ($20k–$80k initial, monthly top-ups)
 - **Income:** Fortnightly salary ($3,500–5,500)
@@ -62,6 +94,11 @@ The persona is stored on each customer record and visible in the CRM.
 
 - **Bank tenure:** ~2.5 years
 - **Account:** Everyday Transaction
+- **Savings Account:** ~40% chance (5.00% p.a. with bonus)
+  - Opening: $3,000–$12,000
+  - Monthly deposit: $200–$600 (~85% of months)
+  - Withdrawals: ~30% of months (school fees, family holiday, appliances, car service)
+  - Typical balance: $5,000–$20,000
 - **Home Loan:** ~50% chance ($550k–$800k, 5.79–6.49%, 30 year term)
 - **Offset Account:** Linked to home loan ($10k–$40k initial, monthly top-ups)
 - **Income:** Fortnightly ($3,000–5,500), often dual income (60% chance of partner salary)
@@ -76,6 +113,11 @@ The persona is stored on each customer record and visible in the CRM.
 
 - **Bank tenure:** ~7 months
 - **Account:** Everyday Transaction
+- **Savings Account:** ~15% chance (5.00% p.a. with bonus)
+  - Opening: $500–$2,000
+  - Monthly deposit: $50–$200 (irregular, ~50% of months)
+  - Withdrawals: ~55% of months (car repair, school fees, medical)
+  - Typical balance: $500–$3,000
 - **Income:** Fortnightly wages ($2,000–3,200) + Family Tax Benefit ($180–380/fn)
 - **Spending:** Groceries, kids items, pharmacy, GP
 - **Subscriptions:** Up to 3
@@ -89,6 +131,11 @@ The persona is stored on each customer record and visible in the CRM.
 
 - **Bank tenure:** ~2.7 years (near bank opening)
 - **Account:** Everyday Transaction
+- **Savings Account:** ~80% chance (5.00% p.a. with bonus)
+  - Opening: $30,000–$120,000
+  - Monthly deposit: $200–$800 (pension surplus, ~85% of months)
+  - Withdrawals: ~8% of months (holiday, home maintenance, gift)
+  - Typical balance: $40,000–$150,000
 - **Income:** Fortnightly pension ($2,000–3,500) + super drawdown ($400–1,200/fn, 70% chance)
 - **Spending:** Modest groceries, pharmacy (Chemist Warehouse frequent), occasional dining
 - **Subscriptions:** Up to 2
@@ -101,6 +148,11 @@ The persona is stored on each customer record and visible in the CRM.
 
 - **Bank tenure:** ~2.7 years (near bank opening)
 - **Account:** Everyday Transaction
+- **Savings Account:** ~50% chance (5.00% p.a. with bonus)
+  - Opening: $5,000–$20,000
+  - Monthly deposit: $50–$200 (small pension surplus, ~75% of months)
+  - Withdrawals: ~25% of months (dental, home repair, medical, spectacles)
+  - Typical balance: $5,000–$25,000
 - **Income:** Fortnightly pension only ($1,200–1,800)
 - **Spending:** Basic groceries, pharmacy, health
 - **Subscriptions:** 0–1
@@ -115,7 +167,9 @@ The persona is stored on each customer record and visible in the CRM.
 ## Coverage Summary
 
 - **Total seeded customers:** 150
-- **Account types:** Transaction (all non-home-loan customers), HomeLoan (~20 customers), Offset (linked 1:1 to each home loan)
+- **Account types:** Transaction (all non-home-loan customers), Savings (~40–60 customers), HomeLoan (~20 customers), Offset (linked 1:1 to each home loan)
+- **Savings accounts:** 5.00% p.a. (0.50% base + 4.50% bonus); bonus forfeited if month-end balance < month-start balance
+- **Savings eligibility:** Comfortable Retiree (80%), Established Professional (60%), Young Professional (55%), Modest Retiree (50%), Young Family (40%), Student (25%), Single Parent (15%), Zero-Hours Worker (10%)
 - **Offset as everyday:** ~80% of home loan customers use their offset account as their primary everyday account (salary in, spending out, maximising offset benefit). ~20% keep a separate transaction account alongside the offset.
 - **Transaction account:** 3% p.a. interest, accrued daily, paid monthly
 - **Home loans:** PMT-amortized repayments, daily interest accrual with offset reduction

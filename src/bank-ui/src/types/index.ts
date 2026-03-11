@@ -36,6 +36,8 @@ export interface Account {
   balance: number;
   availableBalance?: number;
   isActive?: boolean;
+  interestRate?: number;
+  bonusInterestRate?: number;
 }
 
 export const TransactionStatus = {

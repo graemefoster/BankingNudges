@@ -71,6 +71,8 @@ public class InterestCalculationService(
     /// <summary>
     /// Post accumulated interest as transactions for any completed months.
     /// Groups by account AND month to ensure each month gets its own transaction.
+    /// For savings accounts with bonus interest, the bonus is forfeited if the
+    /// account balance dropped during the month (Australian-style conditional rate).
     /// All updates (balance, transaction, accrual flags) are committed atomically per account-month.
     /// </summary>
     public async Task PostMonthlyInterestAsync(DateOnly today)
@@ -88,6 +90,15 @@ public class InterestCalculationService(
             logger.LogInformation("No unposted accruals to process for months before {Month}", firstOfMonth);
             return;
         }
+
+        // Pre-load savings accounts with bonus rates for eligibility checks
+        var accountIds = unpostedAccruals.Select(ia => ia.AccountId).Distinct().ToList();
+        var savingsAccounts = await db.Accounts
+            .Where(a => accountIds.Contains(a.Id)
+                        && a.AccountType == AccountType.Savings
+                        && a.BonusInterestRate != null
+                        && a.InterestRate != null)
+            .ToDictionaryAsync(a => a.Id);
 
         // Group by account AND month — each month gets its own transaction
         var grouped = unpostedAccruals.GroupBy(ia => new
@@ -107,6 +118,28 @@ public class InterestCalculationService(
             if (totalInterest == 0) continue;
 
             var monthLabel = new DateOnly(group.Key.Year, group.Key.Month, 1).ToString("MMMM yyyy");
+
+            // Savings bonus eligibility check: forfeit bonus if balance dropped during the month
+            if (savingsAccounts.TryGetValue(accountId, out var savingsAccount))
+            {
+                var accrualMonth = new DateOnly(group.Key.Year, group.Key.Month, 1);
+                var bonusEarned = await IsSavingsBonusEarnedAsync(accountId, accrualMonth);
+
+                if (!bonusEarned)
+                {
+                    var baseRate = savingsAccount.InterestRate!.Value - savingsAccount.BonusInterestRate!.Value;
+                    var fullRate = savingsAccount.InterestRate!.Value;
+                    var baseOnlyInterest = Math.Round(totalInterest * (baseRate / fullRate), 2);
+
+                    logger.LogInformation(
+                        "Savings account {AccountId} forfeited bonus for {Month}: {Full} → {Base}",
+                        accountId, monthLabel, totalInterest, baseOnlyInterest);
+
+                    totalInterest = baseOnlyInterest;
+                    if (totalInterest == 0) continue;
+                }
+            }
+
             var description = totalInterest < 0
                 ? $"Interest Charged — {monthLabel}"
                 : $"Interest Earned — {monthLabel}";
@@ -121,6 +154,36 @@ public class InterestCalculationService(
         {
             logger.LogInformation("Posted monthly interest for {Count} account-months", posted);
         }
+    }
+
+    /// <summary>
+    /// Determines whether a savings account earned its bonus interest for a given month.
+    /// Bonus is earned if the end-of-month balance ≥ start-of-month balance.
+    /// Uses AccountBalanceSnapshots (created nightly) to determine month boundaries.
+    /// </summary>
+    private async Task<bool> IsSavingsBonusEarnedAsync(int accountId, DateOnly monthStart)
+    {
+        var lastDayOfMonth = monthStart.AddMonths(1).AddDays(-1);
+
+        // Get the snapshot closest to the start of the month (last day of previous month or first day)
+        var startSnapshot = await db.AccountBalanceSnapshots
+            .Where(s => s.AccountId == accountId && s.SnapshotDate <= monthStart)
+            .OrderByDescending(s => s.SnapshotDate)
+            .FirstOrDefaultAsync();
+
+        // Get the snapshot for the end of the month
+        var endSnapshot = await db.AccountBalanceSnapshots
+            .Where(s => s.AccountId == accountId && s.SnapshotDate <= lastDayOfMonth)
+            .OrderByDescending(s => s.SnapshotDate)
+            .FirstOrDefaultAsync();
+
+        if (startSnapshot is null || endSnapshot is null)
+        {
+            // No snapshots available — grant bonus (benefit of the doubt for new accounts)
+            return true;
+        }
+
+        return endSnapshot.LedgerBalance >= startSnapshot.LedgerBalance;
     }
 
     /// <summary>

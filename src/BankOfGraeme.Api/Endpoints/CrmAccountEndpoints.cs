@@ -31,7 +31,7 @@ public static class CrmAccountEndpoints
                 AvailableBalance = availableBalance,
                 account.IsActive, account.CreatedAt,
                 account.LoanAmount, account.InterestRate, account.LoanTermMonths,
-                account.HomeLoanAccountId,
+                account.HomeLoanAccountId, account.BonusInterestRate,
                 Customer = new { account.Customer.Id, account.Customer.FirstName, account.Customer.LastName },
                 OffsetAccounts = account.OffsetAccounts.Select(o => new { o.Id, o.Name, o.Balance })
             });

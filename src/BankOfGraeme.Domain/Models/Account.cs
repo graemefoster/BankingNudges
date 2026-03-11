@@ -28,6 +28,9 @@ public class Account
     public decimal? InterestRate { get; set; }
     public int? LoanTermMonths { get; set; }
 
+    // Savings bonus interest (Australian-style: forfeited if balance drops during the month)
+    public decimal? BonusInterestRate { get; set; }
+
     // Offset links to a home loan
     public int? HomeLoanAccountId { get; set; }
 
