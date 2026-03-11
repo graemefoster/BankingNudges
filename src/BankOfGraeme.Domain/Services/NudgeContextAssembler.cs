@@ -16,12 +16,20 @@ public record CustomerInfo(
     string Name,
     int NudgeFatigueThisWeek);
 
+public record AccountInfo(
+    string Name,
+    string AccountType,
+    decimal Balance,
+    decimal? InterestRate,
+    decimal? BonusInterestRate);
+
 public record FinancialInfo(
     decimal CurrentBalance,
     decimal AvgMonthlyIncome,
     Dictionary<string, decimal> SpendByCategory,
     Dictionary<string, double> SpendDelta,
-    int DaysUntilLikelyPayday);
+    int DaysUntilLikelyPayday,
+    List<AccountInfo>? Accounts = null);
 
 public class NudgeContextAssembler(
     BankDbContext db,
@@ -109,7 +117,17 @@ public class NudgeContextAssembler(
 
         // Detect signals
         var signals = signalDetector.DetectSignals(
-            currentBalance, upcoming, spendDelta, avgMonthlyExpenses, daysUntilPayday);
+            currentBalance, upcoming, spendDelta, spendByCategory, avgMonthlyExpenses, daysUntilPayday);
+
+        var accountInfos = accounts
+            .Where(a => a.AccountType is AccountType.Transaction or AccountType.Savings or AccountType.Offset)
+            .Select(a => new AccountInfo(
+                a.Name,
+                a.AccountType.ToString(),
+                a.Balance,
+                a.InterestRate,
+                a.BonusInterestRate))
+            .ToList();
 
         return new CustomerContext(
             Customer: new CustomerInfo(
@@ -121,7 +139,8 @@ public class NudgeContextAssembler(
                 AvgMonthlyIncome: avgMonthlyIncome,
                 SpendByCategory: spendByCategory,
                 SpendDelta: spendDelta,
-                DaysUntilLikelyPayday: daysUntilPayday),
+                DaysUntilLikelyPayday: daysUntilPayday,
+                Accounts: accountInfos),
             Upcoming: upcoming,
             Signals: signals);
     }
@@ -145,6 +164,11 @@ public class NudgeContextAssembler(
         Dictionary<string, decimal> current,
         Dictionary<string, decimal> prior)
     {
+        // If there's no prior spending history at all (e.g. new account < 30 days old),
+        // deltas are meaningless — every category would look like a 100% spike.
+        if (prior.Count == 0)
+            return new Dictionary<string, double>();
+
         var delta = new Dictionary<string, double>();
         var allCategories = current.Keys.Union(prior.Keys);
 

@@ -30,11 +30,13 @@ public class NudgeSignalDetector
 {
     private const decimal LowBalanceThreshold = 500m;
     private const double SpendSpikeThreshold = 0.40;
+    private const decimal SpendSpikeMaterialityThreshold = 0.05m;
 
     public List<NudgeSignal> DetectSignals(
         decimal currentBalance,
         List<UpcomingPayment> upcomingPayments,
         Dictionary<string, double> spendDelta,
+        Dictionary<string, decimal> spendByCategory,
         decimal avgMonthlyExpenses,
         int daysUntilPayday)
     {
@@ -80,6 +82,12 @@ public class NudgeSignalDetector
             {
                 if (delta > SpendSpikeThreshold)
                 {
+                    // Ignore spikes in categories where the dollar amount is immaterial
+                    var minMaterialAmount = avgMonthlyExpenses * SpendSpikeMaterialityThreshold;
+                    if (spendByCategory.TryGetValue(category, out var categoryAmount)
+                        && categoryAmount < minMaterialAmount)
+                        continue;
+
                     var severity = canComfortablyCoverUpcoming ? SignalSeverity.LOW : SignalSeverity.MEDIUM;
                     signals.Add(new NudgeSignal(
                         SignalType.SPEND_SPIKE,

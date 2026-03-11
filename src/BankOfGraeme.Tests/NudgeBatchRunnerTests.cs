@@ -40,7 +40,7 @@ public class NudgeBatchRunnerTests : IDisposable
         _generator = new NudgeGenerator(responsesClient, new NudgeGeneratorSettings("test-model"), Substitute.For<ILogger<NudgeGenerator>>());
 
         _runner = new NudgeBatchRunner(
-            _db, _assembler, _generator,
+            _db, _assembler, _generator, dateTime,
             Substitute.For<ILogger<NudgeBatchRunner>>());
 
         SeedTestData();

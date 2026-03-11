@@ -399,11 +399,28 @@ function PaymentRow({ payment, highlighted, accountId }: { payment: NudgeInsight
 
 /* ── SAVINGS section ────────────────────────────────────────────── */
 
+function annualInterest(balance: number, rate: number | null, bonusRate: number | null): number {
+  const totalRate = (rate ?? 0) + (bonusRate ?? 0);
+  return balance * totalRate / 100;
+}
+
 function SavingsSection({ context }: { context: NudgeInsightResponse['context'] }) {
   const { financial } = context;
+  const accounts = financial.accounts ?? [];
   const monthlyExpenses = Object.values(financial.spendByCategory).reduce((s, v) => s + v, 0);
   const buffer = monthlyExpenses * 1.5;
   const excessCash = Math.max(0, financial.currentBalance - buffer);
+
+  // Find the best savings rate to compare against
+  const bestSavingsAccount = accounts
+    .filter(a => a.accountType === 'Savings')
+    .sort((a, b) => ((b.interestRate ?? 0) + (b.bonusInterestRate ?? 0)) - ((a.interestRate ?? 0) + (a.bonusInterestRate ?? 0)))[0];
+  const bestSavingsRate = bestSavingsAccount
+    ? (bestSavingsAccount.interestRate ?? 0) + (bestSavingsAccount.bonusInterestRate ?? 0)
+    : null;
+
+  const totalAnnualInterest = accounts.reduce(
+    (sum, a) => sum + annualInterest(a.balance, a.interestRate, a.bonusInterestRate), 0);
 
   return (
     <div className="mb-6">
@@ -411,33 +428,95 @@ function SavingsSection({ context }: { context: NudgeInsightResponse['context'] 
         <span>{categoryEmoji.SAVINGS}</span> Savings Opportunity
       </h3>
       <div className="bg-dark-elevated rounded-xl border border-border p-4 space-y-4">
-        {/* Balance */}
-        <div className="text-center">
-          <p className="text-xs text-text-muted uppercase tracking-wide mb-1">Current Balance</p>
-          <p className="text-3xl font-extrabold tracking-tight text-accent-teal">
-            {formatCurrency(financial.currentBalance)}
-          </p>
-        </div>
+        {/* Per-account breakdown */}
+        {accounts.length > 0 ? (
+          <div className="space-y-2">
+            <p className="text-xs text-text-muted uppercase tracking-wide mb-1">Your Accounts</p>
+            {accounts.map((acct) => {
+              const totalRate = (acct.interestRate ?? 0) + (acct.bonusInterestRate ?? 0);
+              const earning = annualInterest(acct.balance, acct.interestRate, acct.bonusInterestRate);
+              const couldEarnMore = bestSavingsRate != null
+                && acct.accountType !== 'Savings'
+                && totalRate < bestSavingsRate
+                && acct.balance > 0;
+              const earningAtBestRate = couldEarnMore ? acct.balance * bestSavingsRate / 100 : 0;
+              const extraEarnings = earningAtBestRate - earning;
 
-        {/* Breakdown */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-dark-surface rounded-lg p-3 text-center">
-            <p className="text-xs text-text-muted mb-1">Monthly Expenses</p>
-            <p className="text-sm font-bold text-text-primary">{formatCurrency(monthlyExpenses)}</p>
+              return (
+                <div key={acct.name} className="bg-dark-surface rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-text-primary">{acct.name}</p>
+                      <p className="text-xs text-text-muted">
+                        {acct.accountType}
+                        {acct.interestRate != null && ` · ${acct.interestRate.toFixed(2)}% p.a.`}
+                        {acct.bonusInterestRate != null && ` + ${acct.bonusInterestRate.toFixed(2)}% bonus`}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-text-primary tabular-nums">
+                        {formatCurrency(acct.balance)}
+                      </p>
+                      {totalRate > 0 && (
+                        <p className="text-xs text-text-muted tabular-nums">
+                          earning ~{formatCurrency(earning)}/yr
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {couldEarnMore && extraEarnings > 10 && (
+                    <p className="text-xs text-accent-amber mt-2">
+                      At {bestSavingsRate.toFixed(2)}% this balance would earn ~{formatCurrency(earningAtBestRate)}/yr — that's {formatCurrency(extraEarnings)} more
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+            <div className="bg-dark-surface rounded-lg p-3 flex items-center justify-between border-t border-border">
+              <div>
+                <p className="text-sm font-semibold text-text-secondary">Total Usable Balance</p>
+                <p className="text-xs text-text-muted">Earning ~{formatCurrency(totalAnnualInterest)}/yr across all accounts</p>
+              </div>
+              <p className="text-sm font-extrabold text-accent-teal tabular-nums">
+                {formatCurrency(financial.currentBalance)}
+              </p>
+            </div>
           </div>
-          <div className="bg-dark-surface rounded-lg p-3 text-center">
-            <p className="text-xs text-text-muted mb-1">1.5× Buffer</p>
-            <p className="text-sm font-bold text-text-secondary">{formatCurrency(buffer)}</p>
+        ) : (
+          <div className="text-center">
+            <p className="text-xs text-text-muted uppercase tracking-wide mb-1">Total Balance</p>
+            <p className="text-3xl font-extrabold tracking-tight text-accent-teal">
+              {formatCurrency(financial.currentBalance)}
+            </p>
+          </div>
+        )}
+
+        {/* Expense buffer */}
+        <div className="space-y-2">
+          <p className="text-xs text-text-muted">
+            We look at your last 30 days of spending to estimate how much you might want to keep easily accessible.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-dark-surface rounded-lg p-3 text-center">
+              <p className="text-xs text-text-muted mb-1">Monthly Expenses</p>
+              <p className="text-sm font-bold text-text-primary">{formatCurrency(monthlyExpenses)}</p>
+              <p className="text-xs text-text-muted mt-1">Your spend over the last 30 days</p>
+            </div>
+            <div className="bg-dark-surface rounded-lg p-3 text-center">
+              <p className="text-xs text-text-muted mb-1">1.5× Buffer</p>
+              <p className="text-sm font-bold text-text-secondary">{formatCurrency(buffer)}</p>
+              <p className="text-xs text-text-muted mt-1">A comfortable cushion above your regular spend</p>
+            </div>
           </div>
         </div>
 
         {/* Excess cash */}
         {excessCash > 0 ? (
           <div className="bg-accent-teal/10 border border-accent-teal/30 rounded-lg p-3 text-center">
-            <p className="text-xs text-accent-teal mb-1">Potential Savings</p>
+            <p className="text-xs text-accent-teal mb-1">Above Buffer</p>
             <p className="text-xl font-extrabold text-accent-teal">{formatCurrency(excessCash)}</p>
             <p className="text-xs text-text-muted mt-1">
-              You could move this to a savings account and start earning interest
+              The amount across all your accounts beyond the 1.5× buffer
             </p>
           </div>
         ) : (

@@ -13,6 +13,7 @@ public class NudgeSignalDetectorTests
             currentBalance: 350m,
             upcomingPayments: [],
             spendDelta: new Dictionary<string, double>(),
+            spendByCategory: new Dictionary<string, decimal>(),
             avgMonthlyExpenses: 2000m,
             daysUntilPayday: 10);
 
@@ -33,6 +34,7 @@ public class NudgeSignalDetectorTests
             currentBalance: 2500m, // less than 2600 * 1.1 = 2860
             upcomingPayments: upcoming,
             spendDelta: new Dictionary<string, double>(),
+            spendByCategory: new Dictionary<string, decimal>(),
             avgMonthlyExpenses: 3000m,
             daysUntilPayday: 10);
 
@@ -47,10 +49,13 @@ public class NudgeSignalDetectorTests
             new("Rent", 2400m, 1, "SCHEDULED", "ScheduledPayment")
         };
 
+        // Balance doesn't comfortably cover upcoming (3000 < 2400 * 2 = 4800)
+        // but can still technically pay (3000 > 2400 * 1.1 = 2640)
         var signals = _detector.DetectSignals(
-            currentBalance: 10000m,
+            currentBalance: 3000m,
             upcomingPayments: upcoming,
             spendDelta: new Dictionary<string, double>(),
+            spendByCategory: new Dictionary<string, decimal>(),
             avgMonthlyExpenses: 3000m,
             daysUntilPayday: 10);
 
@@ -68,10 +73,18 @@ public class NudgeSignalDetectorTests
             ["Groceries"] = 0.10 // only 10%, below threshold
         };
 
+        var spendByCategory = new Dictionary<string, decimal>
+        {
+            ["Dining"] = 250m, // material: 250 > 3000 * 0.05 = 150
+            ["Groceries"] = 400m
+        };
+
+        // Balance not healthy: 2000 < 3000 * 1.5 = 4500
         var signals = _detector.DetectSignals(
-            currentBalance: 5000m,
+            currentBalance: 2000m,
             upcomingPayments: [],
             spendDelta: spendDelta,
+            spendByCategory: spendByCategory,
             avgMonthlyExpenses: 3000m,
             daysUntilPayday: 10);
 
@@ -81,12 +94,38 @@ public class NudgeSignalDetectorTests
     }
 
     [Fact]
+    public void IgnoresImmaterialSpendSpike()
+    {
+        var spendDelta = new Dictionary<string, double>
+        {
+            ["Entertainment"] = 0.60 // 60% increase but tiny dollar amount
+        };
+
+        var spendByCategory = new Dictionary<string, decimal>
+        {
+            ["Entertainment"] = 8m // immaterial: 8 < 3000 * 0.05 = 150
+        };
+
+        // Balance not healthy so spend spikes are checked
+        var signals = _detector.DetectSignals(
+            currentBalance: 2000m,
+            upcomingPayments: [],
+            spendDelta: spendDelta,
+            spendByCategory: spendByCategory,
+            avgMonthlyExpenses: 3000m,
+            daysUntilPayday: 10);
+
+        Assert.DoesNotContain(signals, s => s.Type == SignalType.SPEND_SPIKE);
+    }
+
+    [Fact]
     public void DetectsExcessCash()
     {
         var signals = _detector.DetectSignals(
             currentBalance: 10000m,
             upcomingPayments: [],
             spendDelta: new Dictionary<string, double>(),
+            spendByCategory: new Dictionary<string, decimal>(),
             avgMonthlyExpenses: 3000m,
             daysUntilPayday: 10);
 
@@ -100,6 +139,7 @@ public class NudgeSignalDetectorTests
             currentBalance: 5000m,
             upcomingPayments: [],
             spendDelta: new Dictionary<string, double>(),
+            spendByCategory: new Dictionary<string, decimal>(),
             avgMonthlyExpenses: 3000m,
             daysUntilPayday: 1);
 
@@ -113,6 +153,7 @@ public class NudgeSignalDetectorTests
             currentBalance: 5000m,
             upcomingPayments: [],
             spendDelta: new Dictionary<string, double> { ["Groceries"] = 0.10 },
+            spendByCategory: new Dictionary<string, decimal> { ["Groceries"] = 400m },
             avgMonthlyExpenses: 5000m,
             daysUntilPayday: 10);
 

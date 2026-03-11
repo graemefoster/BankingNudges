@@ -158,12 +158,21 @@ export interface NudgeHistoryItem {
   respondedAt: string | null;
 }
 
+export interface NudgeInsightAccount {
+  name: string;
+  accountType: string;
+  balance: number;
+  interestRate: number | null;
+  bonusInterestRate: number | null;
+}
+
 export interface NudgeInsightFinancial {
   currentBalance: number;
   avgMonthlyIncome: number;
   spendByCategory: Record<string, number>;
   spendDelta: Record<string, number>;
   daysUntilLikelyPayday: number;
+  accounts?: NudgeInsightAccount[];
 }
 
 export interface NudgeInsightPayment {

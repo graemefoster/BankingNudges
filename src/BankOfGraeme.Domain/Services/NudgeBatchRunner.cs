@@ -12,6 +12,7 @@ public class NudgeBatchRunner(
     BankDbContext db,
     NudgeContextAssembler contextAssembler,
     NudgeGenerator nudgeGenerator,
+    IDateTimeProvider dateTime,
     ILogger<NudgeBatchRunner> logger)
 {
     public async Task<BatchRunResult> RunAsync(int? sampleSize = null, List<int>? customerIds = null)
@@ -42,10 +43,30 @@ public class NudgeBatchRunner(
         var errors = 0;
         var skipReasons = new List<string>();
 
+        var today = dateTime.Today;
+        var startOfDay = today.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var endOfDay = today.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
         foreach (var customerId in targetCustomers)
         {
             try
             {
+                // Skip if this customer already received a nudge today
+                var alreadyNudgedToday = await db.Nudges
+                    .AsNoTracking()
+                    .AnyAsync(n => n.CustomerId == customerId
+                        && n.CreatedAt >= startOfDay
+                        && n.CreatedAt < endOfDay);
+
+                if (alreadyNudgedToday)
+                {
+                    var reason = $"Customer {customerId}: already nudged today";
+                    logger.LogInformation("{SkipReason}", reason);
+                    skipReasons.Add(reason);
+                    skipped++;
+                    continue;
+                }
+
                 var context = await contextAssembler.AssembleAsync(customerId);
                 if (context is null)
                 {

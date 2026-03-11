@@ -45,11 +45,10 @@ public static class NudgeEndpoints
             var startOfDay = today.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
             var endOfDay = today.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
-            // Return existing PENDING nudge if one was already generated today
+            // Return existing nudge if one was already generated today (any status)
             var existing = await db.Nudges
                 .AsNoTracking()
                 .Where(n => n.CustomerId == customerId
-                    && n.Status == NudgeStatus.PENDING
                     && n.CreatedAt >= startOfDay
                     && n.CreatedAt < endOfDay)
                 .OrderByDescending(n => n.CreatedAt)
@@ -192,7 +191,9 @@ public static class NudgeEndpoints
                         context.Financial.AvgMonthlyIncome,
                         context.Financial.SpendByCategory,
                         context.Financial.SpendDelta,
-                        context.Financial.DaysUntilLikelyPayday),
+                        context.Financial.DaysUntilLikelyPayday,
+                        context.Financial.Accounts?.Select(a => new NudgeInsightAccount(
+                            a.Name, a.AccountType, a.Balance, a.InterestRate, a.BonusInterestRate)).ToList()),
                     Upcoming: context.Upcoming.Select(u => new NudgeInsightPayment(
                         u.Merchant, u.Amount, u.DueInDays, u.Confidence, u.Source)).ToList(),
                     Signals: context.Signals.Select(s => new NudgeInsightSignal(
@@ -245,6 +246,7 @@ public record NudgeGenerateResponse(bool Generated, NudgeDto? Nudge, string? Rea
 public record NudgeInsightResponse(NudgeDetailDto Nudge, NudgeInsightContext Context);
 public record NudgeDetailDto(int Id, string Message, string Cta, string Urgency, string Category, string Reasoning, string Status, DateTime CreatedAt, DateTime? RespondedAt);
 public record NudgeInsightContext(NudgeInsightFinancial Financial, List<NudgeInsightPayment> Upcoming, List<NudgeInsightSignal> Signals);
-public record NudgeInsightFinancial(decimal CurrentBalance, decimal AvgMonthlyIncome, Dictionary<string, decimal> SpendByCategory, Dictionary<string, double> SpendDelta, int DaysUntilLikelyPayday);
+public record NudgeInsightFinancial(decimal CurrentBalance, decimal AvgMonthlyIncome, Dictionary<string, decimal> SpendByCategory, Dictionary<string, double> SpendDelta, int DaysUntilLikelyPayday, List<NudgeInsightAccount>? Accounts = null);
+public record NudgeInsightAccount(string Name, string AccountType, decimal Balance, decimal? InterestRate, decimal? BonusInterestRate);
 public record NudgeInsightPayment(string Merchant, decimal Amount, int DueInDays, string Confidence, string Source);
 public record NudgeInsightSignal(string Type, string Severity, string? Category, double? Delta, string? PaymentMerchant, decimal? PaymentAmount, int? DueInDays);

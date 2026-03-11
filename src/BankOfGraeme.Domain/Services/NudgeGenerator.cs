@@ -29,19 +29,27 @@ public class NudgeGenerator(
     private string? _lastValidationFailure;
 
     private const string SystemPrompt = """
-        You are a proactive financial assistant for a retail bank.
+        You are a financial information assistant for a retail bank.
 
-        Your job is to generate a single, timely nudge for this customer
+        Your job is to generate a single, timely informational nudge for this customer
         based on their financial context and active signals.
+
+        You will receive a per-account breakdown showing each account's type, balance,
+        and interest rate. Use this to make observations specific to individual accounts
+        rather than just the aggregate balance. For example, note when a large balance
+        sits in a low-interest Transaction account while a higher-rate Savings account
+        exists.
 
         Rules you must follow:
         - Only use figures that appear in the context provided. Never invent numbers.
         - Be specific. Bad: "you may be overspending". Good: "your dining spend is up $180 this month".
+        - Reference specific account names and balances when relevant — don't just use the total.
         - One nudge only. Pick the highest value signal if multiple exist.
         - Do NOT combine a spend spike with upcoming payments to create urgency when the customer's balance comfortably covers those payments. A spend increase is informational, not alarming, when there is plenty of cash available.
-        - Never suggest "trimming costs" or "reviewing expenses" when the customer's balance is healthy and comfortably above their monthly spend. Focus on positive, forward-looking actions instead.
+        - Do NOT describe a balance as "close to", "tight for", or "just enough for" a specific payment when the balance is more than double the payment amount. Only reference a specific payment in a low-balance context when the CANT_COVER_UPCOMING signal is active.
+        - Never suggest "trimming costs" or "reviewing expenses" when the customer's balance is healthy and comfortably above their monthly spend.
         - Keep the message under 2 sentences.
-        - Suggest one clear action.
+        - NEVER give financial advice. Do NOT tell the customer what to do with their money. Do NOT use phrases like "consider moving", "you should", "why not", "try to", or "we recommend". Present facts and observations only; let the customer decide what action, if any, to take.
         - Tone: warm, direct, non-judgmental.
         - Never use the word "unfortunately".
         - This is contextual financial information, not personal financial advice.
@@ -50,7 +58,7 @@ public class NudgeGenerator(
         Return ONLY valid JSON in this exact format, no other text:
         {
           "message": "the nudge text for the customer",
-          "cta": "short action button label e.g. Move funds, Review now, Cancel it",
+          "cta": "short label for a button that lets the customer explore further e.g. See details, View breakdown, View options",
           "urgency": "HIGH or MEDIUM or LOW",
           "category": "CASHFLOW or SAVINGS or SPENDING or UPCOMING_PAYMENT",
           "reasoning": "one sentence explaining why this nudge was chosen over others"
@@ -118,6 +126,14 @@ public class NudgeGenerator(
 
     private static string BuildUserPrompt(CustomerContext ctx)
     {
+        var accountLines = string.Join("\n",
+            (ctx.Financial.Accounts ?? []).Select(a =>
+            {
+                var rate = a.InterestRate.HasValue ? $"{a.InterestRate:F2}% p.a." : "n/a";
+                var bonus = a.BonusInterestRate.HasValue ? $" + {a.BonusInterestRate:F2}% bonus" : "";
+                return $"  {a.Name} ({a.AccountType}): ${a.Balance:F2} — interest {rate}{bonus}";
+            }));
+
         var spendLines = string.Join("\n",
             ctx.Financial.SpendDelta
                 .OrderByDescending(kvp => Math.Abs(kvp.Value))
@@ -130,19 +146,22 @@ public class NudgeGenerator(
         var signalLines = string.Join("\n",
             ctx.Signals.Select(s => s.Type switch
             {
-                SignalType.LOW_BALANCE => $"  LOW_BALANCE: current balance ${ctx.Financial.CurrentBalance:F2}",
-                SignalType.CANT_COVER_UPCOMING => $"  CANT_COVER_UPCOMING: balance ${ctx.Financial.CurrentBalance:F2} vs upcoming ${ctx.Upcoming.Sum(p => p.Amount):F2}",
+                SignalType.LOW_BALANCE => $"  LOW_BALANCE: total usable balance ${ctx.Financial.CurrentBalance:F2}",
+                SignalType.CANT_COVER_UPCOMING => $"  CANT_COVER_UPCOMING: total usable balance ${ctx.Financial.CurrentBalance:F2} vs upcoming ${ctx.Upcoming.Sum(p => p.Amount):F2}",
                 SignalType.PAYMENT_DUE_SOON => $"  PAYMENT_DUE_SOON: {s.PaymentMerchant} ${s.PaymentAmount:F2} in {s.DueInDays} days",
                 SignalType.SPEND_SPIKE => $"  SPEND_SPIKE: {s.Category} up {s.Delta * 100:F0}% vs last month",
-                SignalType.EXCESS_CASH_SITTING => $"  EXCESS_CASH_SITTING: balance ${ctx.Financial.CurrentBalance:F2}",
+                SignalType.EXCESS_CASH_SITTING => $"  EXCESS_CASH_SITTING: total usable balance ${ctx.Financial.CurrentBalance:F2} (see per-account breakdown above for where the money sits)",
                 SignalType.PAYDAY_INCOMING => $"  PAYDAY_INCOMING: in {ctx.Financial.DaysUntilLikelyPayday} days",
                 _ => $"  {s.Type}"
             }));
 
         return $"""
             Customer: {ctx.Customer.Name}
-            Current balance: ${ctx.Financial.CurrentBalance:F2}
+            Total usable balance: ${ctx.Financial.CurrentBalance:F2}
             Average monthly income: ${ctx.Financial.AvgMonthlyIncome:F2}
+
+            Accounts:
+            {accountLines}
 
             Spending this month vs last month:
             {spendLines}
@@ -247,6 +266,15 @@ public class NudgeGenerator(
             Math.Round(ctx.Financial.CurrentBalance, 2),
             Math.Round(ctx.Financial.AvgMonthlyIncome, 2)
         };
+
+        // Add per-account balances so the LLM can reference individual accounts
+        if (ctx.Financial.Accounts is not null)
+        {
+            foreach (var account in ctx.Financial.Accounts)
+            {
+                numbers.Add(Math.Round(account.Balance, 2));
+            }
+        }
 
         foreach (var (_, amount) in ctx.Financial.SpendByCategory)
         {

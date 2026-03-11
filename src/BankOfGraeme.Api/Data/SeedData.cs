@@ -558,7 +558,7 @@ public static class SeedData
         }
 
         var runningBalance = openingDeposit;
-        var nextPayDay = FindFirstPayDay(accountStart, persona.IncomeFrequency);
+        var nextPayDay = FindFirstPayDay(rng, accountStart, persona.IncomeFrequency);
         var current = accountStart.AddDays(1);
         var dayEnd = now.AddDays(-1);
 
@@ -880,7 +880,7 @@ public static class SeedData
         var currentMonth = firstMonth;
 
         // Determine payday schedule to time transfers appropriately
-        var nextPayDay = FindFirstPayDay(accountStart, persona.IncomeFrequency);
+        var nextPayDay = FindFirstPayDay(rng, accountStart, persona.IncomeFrequency);
         while (nextPayDay < accountStart.AddMonths(1))
             nextPayDay = AdvanceByIncomeFrequency(nextPayDay, persona.IncomeFrequency);
 
@@ -1135,9 +1135,8 @@ public static class SeedData
         return (string.Concat(merchant.Name, " ", rng.Next(100, 999).ToString("000")), amount);
     }
 
-    private static DateTime FindFirstPayDay(DateTime accountStart, IncomeFrequency freq)
+    private static DateTime FindFirstPayDay(Random rng, DateTime accountStart, IncomeFrequency freq)
     {
-        var rng = new Random(accountStart.GetHashCode());
         return freq switch
         {
             IncomeFrequency.Weekly => accountStart.AddDays(rng.Next(1, 8)),
