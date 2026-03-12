@@ -182,3 +182,46 @@ The Bank of Graeme savings account uses an Australian-style **bonus interest** s
 - **Rent suppressed** for customers who hold a home loan (they're homeowners)
 - **Tenure spread:** 2 months (newest) to opening day 2 July 2023
 - **Australian context:** AUD, Aussie merchants, realistic wages
+- **Holiday travel:** Some customers book overseas trips and spend in foreign currencies (see [Holiday Travel](#holiday-travel) below)
+
+---
+
+## Holiday Travel
+
+Some customers go on holiday overseas. The simulation models the full lifecycle: booking a flight at a travel agent (domestic AUD transaction), then spending in foreign currencies at the destination while domestic discretionary spending is suppressed (recurring bills/rent still fire).
+
+### Destinations
+
+| Destination | Currency | Approx. rate (per 1 AUD) | Vibe |
+|-------------|----------|--------------------------|------|
+| Bali | IDR | 10,300 | Budget |
+| Thailand | THB | 23.5 | Budget |
+| Fiji | FJD | 1.45 | Moderate |
+| Japan | JPY | 97 | Moderate |
+| New Zealand | NZD | 1.08 | Moderate |
+| Europe | EUR | 0.61 | Expensive |
+| USA | USD | 0.65 | Expensive |
+| UK | GBP | 0.52 | Expensive |
+
+### Per-Persona Holiday Profiles
+
+| Persona | Probability | Duration | Eligible destinations | Flight cost (AUD) |
+|---------|-------------|----------|-----------------------|-------------------|
+| Student | 15% | 7–14 days | Bali, Thailand | $400–$800 |
+| Zero-Hours Worker | 5% | 5–7 days | Bali, Thailand | $350–$600 |
+| Young Professional | 35% | 7–14 days | Any | $600–$2,500 |
+| Established Professional | 45% | 7–14 days | Moderate & Expensive | $1,200–$4,000 |
+| Young Family | 25% | 7–14 days | Bali, Fiji, Japan, NZ | $2,000–$6,000 |
+| Single Parent | 10% | 5–7 days | Bali, Thailand | $1,000–$2,500 |
+| Comfortable Retiree | 40% | 10–21 days | Any | $1,500–$5,000 |
+| Modest Retiree | 12% | 7–10 days | Bali, Thailand, Fiji | $600–$1,500 |
+
+Long-tenure customers (>1 year) have a chance of a second holiday at half the base probability.
+
+### How it works
+
+1. **Booking:** 14–30 days before departure, a travel agent transaction appears (e.g. "FLIGHT CENTRE - BALI"). This is a domestic AUD withdrawal.
+2. **During the trip:** 2–5 foreign transactions per day from destination-specific merchants (restaurants, shops, transport, attractions).
+3. **Domestic spending suppressed:** No Woolworths, no Uber Eats — the customer is overseas. Recurring direct debits (rent, insurance, utilities) still fire as normal.
+4. **Foreign transactions:** Each has `OriginalCurrency`, `OriginalAmount`, `ExchangeRate` (with ±2% daily variance), and `FeeAmount` (3% international transaction fee).
+5. **Transaction Amount:** The `Amount` field is the total AUD debit (converted amount + fee).

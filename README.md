@@ -59,6 +59,15 @@ The frontend runs at **http://localhost:5173** and proxies `/api` to the backend
 | James Chen | Transaction ($890), Savings ($8,200) |
 | Emma Wilson | Transaction ($5,100), Home Loan (-$320K), Offset ($12,000) |
 
+## Seed Data Highlights
+
+The seeder creates **150 customers** across 8 personas with realistic Australian spending. Key features:
+
+- **Recurring payments** — rent, utilities, mobile, insurance with scheduled direct debits
+- **Holiday travel** — some customers book overseas trips (Bali, Thailand, Japan, Europe, etc.) and spend in foreign currencies with exchange rate conversion and 3% international transaction fees. Domestic discretionary spending is suppressed while abroad; recurring bills still fire. See [customer-personas.md](customer-personas.md#holiday-travel) for full details.
+- **Failed transactions** — insufficient-funds failures on direct debits
+- **Savings with bonus interest** — 5% p.a. (0.50% base + 4.50% conditional bonus)
+
 ## Account Types
 
 - **Transaction** — everyday spending, no interest

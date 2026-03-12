@@ -97,6 +97,10 @@ public class BankDbContext : DbContext
             e.Property(t => t.Description).HasMaxLength(500);
             e.Property(t => t.FailureReason).HasMaxLength(500);
             e.Property(t => t.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(t => t.OriginalCurrency).HasMaxLength(3);
+            e.Property(t => t.OriginalAmount).HasPrecision(18, 2);
+            e.Property(t => t.ExchangeRate).HasPrecision(18, 6);
+            e.Property(t => t.FeeAmount).HasPrecision(18, 2);
 
             e.HasOne(t => t.Account)
                 .WithMany(a => a.Transactions)

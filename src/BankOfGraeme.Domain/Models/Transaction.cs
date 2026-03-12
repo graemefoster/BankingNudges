@@ -23,5 +23,11 @@ public class Transaction
     public DateTime? SettledAt { get; set; }
     public DateTime CreatedAt { get; set; }
 
+    // Foreign currency fields — null for domestic (AUD) transactions
+    public string? OriginalCurrency { get; set; }
+    public decimal? OriginalAmount { get; set; }
+    public decimal? ExchangeRate { get; set; }
+    public decimal? FeeAmount { get; set; }
+
     public Account Account { get; set; } = null!;
 }

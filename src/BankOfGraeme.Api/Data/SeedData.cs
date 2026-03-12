@@ -173,6 +173,90 @@ public static class SeedData
 
     private static readonly string[] CarInsuranceProviders = ["NRMA", "AAMI", "ALLIANZ", "SUNCORP", "RACV"];
 
+    // === HOLIDAY / TRAVEL DATA ===
+    private const decimal InternationalFeeRate = 0.03m; // 3% international transaction fee
+
+    private static readonly string[] TravelAgents =
+        ["FLIGHT CENTRE", "WEBJET", "SKYSCANNER", "BOOKING.COM", "EXPEDIA"];
+
+    private sealed record HolidayDestination(
+        string Name, string Currency, decimal ExchangeRate,
+        (string Name, decimal Min, decimal Max)[] Merchants);
+
+    private static readonly HolidayDestination[] Destinations =
+    [
+        new("Bali", "IDR", 10_300m, [
+            ("WARUNG MADE BALI", 45_000m, 250_000m), ("BALI BEACH CLUB", 150_000m, 500_000m),
+            ("SEMINYAK SQUARE", 80_000m, 600_000m), ("GRAB BALI", 25_000m, 120_000m),
+            ("WATERBOM BALI", 200_000m, 400_000m), ("CIRCLE K BALI", 15_000m, 80_000m),
+            ("BALI SPA & MASSAGE", 100_000m, 350_000m), ("CARREFOUR BALI", 50_000m, 300_000m),
+        ]),
+        new("Thailand", "THB", 23.5m, [
+            ("7-ELEVEN BANGKOK", 30m, 200m), ("CHATUCHAK MARKET", 100m, 800m),
+            ("GRAB THAILAND", 50m, 250m), ("SIAM PARAGON", 200m, 2000m),
+            ("STREET FOOD BKK", 40m, 150m), ("FULL MOON PARTY", 300m, 1500m),
+            ("TEMPLE TOUR TH", 100m, 500m), ("CENTRAL PATTANA", 150m, 1200m),
+        ]),
+        new("Fiji", "FJD", 1.45m, [
+            ("NADI MARKET", 8m, 60m), ("FIJI BEACH RESORT", 25m, 120m),
+            ("PORTS OF FIJI", 15m, 80m), ("ISLAND HOPPER FIJI", 40m, 150m),
+            ("ROSIE HOLIDAYS FIJI", 20m, 90m), ("FIJI WATER SPORTS", 30m, 100m),
+        ]),
+        new("Japan", "JPY", 97.0m, [
+            ("LAWSON JAPAN", 200m, 1500m), ("UNIQLO TOKYO", 1000m, 8000m),
+            ("SUICA TOP UP", 1000m, 5000m), ("RAMEN ICHIRAN", 800m, 2000m),
+            ("DON QUIJOTE", 500m, 5000m), ("TEAMLAB TOKYO", 2000m, 4000m),
+            ("7-ELEVEN JAPAN", 150m, 800m), ("SHINKANSEN JR", 5000m, 15000m),
+        ]),
+        new("New Zealand", "NZD", 1.08m, [
+            ("PAK N SAVE NZ", 15m, 120m), ("BUNGY NZ", 150m, 300m),
+            ("KIWI EXPERIENCE", 40m, 200m), ("COUNTDOWN NZ", 12m, 90m),
+            ("FERGBURGER NZ", 15m, 35m), ("INTERISLANDER NZ", 50m, 180m),
+        ]),
+        new("Europe", "EUR", 0.61m, [
+            ("CARREFOUR EU", 8m, 80m), ("EIFFEL TOWER PARIS", 15m, 30m),
+            ("EURAIL PASS", 50m, 250m), ("COLOSSEUM ROMA", 12m, 25m),
+            ("TAPAS BAR BARCELONA", 10m, 45m), ("ZARA EU", 20m, 120m),
+            ("MUSEUM EU", 10m, 25m), ("HOTEL EU", 60m, 200m),
+        ]),
+        new("USA", "USD", 0.65m, [
+            ("WALMART US", 10m, 100m), ("UBER USA", 8m, 45m),
+            ("UNIVERSAL STUDIOS", 80m, 200m), ("IN-N-OUT BURGER", 8m, 20m),
+            ("TARGET USA", 15m, 120m), ("NYC YELLOW CAB", 10m, 40m),
+            ("TIMES SQUARE NYC", 20m, 80m), ("WHOLE FOODS US", 15m, 90m),
+        ]),
+        new("UK", "GBP", 0.52m, [
+            ("TESCO UK", 8m, 60m), ("LONDON EYE", 20m, 35m),
+            ("TUBE OYSTER UK", 5m, 20m), ("PRET A MANGER UK", 5m, 15m),
+            ("PRIMARK UK", 10m, 60m), ("THEATRE WEST END", 30m, 100m),
+            ("BRITISH MUSEUM", 0m, 15m), ("WETHERSPOONS UK", 8m, 30m),
+        ]),
+    ];
+
+    // Budget destinations for price-sensitive personas
+    private static readonly int[] BudgetDestinationIndices = [0, 1]; // Bali, Thailand
+    private static readonly int[] FamilyDestinationIndices = [0, 2, 3, 4]; // Bali, Fiji, Japan, NZ
+
+    private sealed record HolidayConfig(
+        double Probability, int MinDays, int MaxDays,
+        int[] EligibleDestinations, decimal FlightMin, decimal FlightMax);
+
+    private static readonly Dictionary<string, HolidayConfig> HolidayConfigs = new()
+    {
+        ["Student"] = new(0.15, 7, 14, BudgetDestinationIndices, 400m, 800m),
+        ["Zero-Hours Worker"] = new(0.05, 5, 7, BudgetDestinationIndices, 350m, 600m),
+        ["Young Professional"] = new(0.35, 7, 14, [0, 1, 2, 3, 4, 5, 6, 7], 600m, 2500m),
+        ["Established Professional"] = new(0.45, 7, 14, [2, 3, 4, 5, 6, 7], 1200m, 4000m),
+        ["Young Family"] = new(0.25, 7, 14, FamilyDestinationIndices, 2000m, 6000m),
+        ["Single Parent"] = new(0.10, 5, 7, BudgetDestinationIndices, 1000m, 2500m),
+        ["Comfortable Retiree"] = new(0.40, 10, 21, [0, 1, 2, 3, 4, 5, 6, 7], 1500m, 5000m),
+        ["Modest Retiree"] = new(0.12, 7, 10, [0, 1, 2], 600m, 1500m),
+    };
+
+    private sealed record HolidayPeriod(
+        DateTime DepartureDate, int DurationDays, HolidayDestination Destination,
+        decimal FlightCost, DateTime BookingDate);
+
     private static readonly Dictionary<string, string[]> SavingsWithdrawalReasons = new()
     {
         ["Student"] = ["TEXTBOOKS", "LAPTOP", "CONCERT TICKETS", "UNI FEES"],
@@ -562,6 +646,10 @@ public static class SeedData
         var current = accountStart.AddDays(1);
         var dayEnd = now.AddDays(-1);
 
+        // Generate holiday periods for this customer
+        var holidays = GenerateHolidays(rng, persona, accountStart, now);
+        var holidayBookingsGenerated = new HashSet<int>();
+
         // For casual workers, track when to change employer (~6-12 months)
         var employers = new List<string>(profile.Employers);
         var nextJobChange = accountStart.AddDays(rng.Next(180, 365));
@@ -663,23 +751,69 @@ public static class SeedData
                 }
             }
 
-            // === DISCRETIONARY SPENDING ===
-            var spendCount = GetDailySpendCount(rng, persona, current.DayOfWeek);
-            for (int s = 0; s < spendCount; s++)
+            // === HOLIDAY BOOKINGS (travel agent, pre-departure) ===
+            for (int hi = 0; hi < holidays.Count; hi++)
             {
-                var (desc, amount) = PickSpend(rng, persona);
-                if (amount > 0 && runningBalance >= amount)
+                var holiday = holidays[hi];
+                if (!holidayBookingsGenerated.Contains(hi) && current.Date >= holiday.BookingDate.Date)
                 {
-                    var spendTime = current.Date.AddHours(rng.Next(7, 22)).AddMinutes(rng.Next(0, 60));
-                    if (spendTime > now) break;
-                    txns.Add(MakeTxn(account.Id, -amount, desc,
-                        TransactionType.Withdrawal, spendTime));
-                    runningBalance -= amount;
+                    holidayBookingsGenerated.Add(hi);
+                    if (runningBalance >= holiday.FlightCost)
+                    {
+                        var agent = TravelAgents[rng.Next(TravelAgents.Length)];
+                        var bookTime = current.Date.AddHours(rng.Next(10, 20)).AddMinutes(rng.Next(0, 60));
+                        if (bookTime <= now)
+                        {
+                            txns.Add(MakeTxn(account.Id, -holiday.FlightCost,
+                                $"{agent} - {holiday.Destination.Name.ToUpperInvariant()}",
+                                TransactionType.Withdrawal, bookTime));
+                            runningBalance -= holiday.FlightCost;
+                        }
+                    }
                 }
             }
 
-            // === OCCASIONAL LARGE EXPENSES (car repair, dental, medical, vet) ===
-            if (rng.NextDouble() < 0.004) // ~1.5 times per year
+            var onHoliday = IsOnHoliday(holidays, current);
+
+            // === DISCRETIONARY SPENDING (suppressed during holidays) ===
+            if (!onHoliday)
+            {
+                var spendCount = GetDailySpendCount(rng, persona, current.DayOfWeek);
+                for (int s = 0; s < spendCount; s++)
+                {
+                    var (desc, amount) = PickSpend(rng, persona);
+                    if (amount > 0 && runningBalance >= amount)
+                    {
+                        var spendTime = current.Date.AddHours(rng.Next(7, 22)).AddMinutes(rng.Next(0, 60));
+                        if (spendTime > now) break;
+                        txns.Add(MakeTxn(account.Id, -amount, desc,
+                            TransactionType.Withdrawal, spendTime));
+                        runningBalance -= amount;
+                    }
+                }
+            }
+
+            // === FOREIGN SPENDING (during holidays) ===
+            if (onHoliday)
+            {
+                var holiday = GetCurrentHoliday(holidays, current)!;
+                // 2–5 foreign transactions per day while on holiday
+                var foreignSpendCount = rng.Next(2, 6);
+                for (int fs = 0; fs < foreignSpendCount; fs++)
+                {
+                    var spendTime = current.Date.AddHours(rng.Next(8, 22)).AddMinutes(rng.Next(0, 60));
+                    if (spendTime > now) break;
+                    var (txn, totalAud) = PickForeignSpend(rng, account.Id, holiday, persona, spendTime);
+                    if (totalAud > 0 && runningBalance >= totalAud)
+                    {
+                        txns.Add(txn);
+                        runningBalance -= totalAud;
+                    }
+                }
+            }
+
+            // === OCCASIONAL LARGE EXPENSES (car repair, dental, medical, vet) — suppressed during holidays ===
+            if (!onHoliday && rng.NextDouble() < 0.004) // ~1.5 times per year
             {
                 var (expDesc, expAmt) = PickLargeExpense(rng, persona);
                 if (expAmt > 0 && runningBalance >= expAmt)
@@ -1340,6 +1474,139 @@ public static class SeedData
         if (persona.Name is "Student" or "Zero-Hours Worker" or "Modest Retiree")
             amount = Math.Round(amount * RandomDecimal(rng, 0.4m, 0.65m), 2);
         return ($"{expense.Desc} {rng.Next(100, 999):000}", amount);
+    }
+
+    /// <summary>
+    /// Generate holiday periods for a customer based on their persona.
+    /// Holidays are spread across the customer's tenure, avoiding the first 60 days
+    /// and the last 7 days of history. Customers may have 0–2 holidays.
+    /// </summary>
+    private static List<HolidayPeriod> GenerateHolidays(
+        Random rng, PersonaTemplate persona, DateTime accountStart, DateTime now)
+    {
+        var holidays = new List<HolidayPeriod>();
+        if (!HolidayConfigs.TryGetValue(persona.Name, out var config))
+            return holidays;
+
+        var tenureDays = (int)(now - accountStart).TotalDays;
+        if (tenureDays < 90) return holidays; // too new for a holiday
+
+        // Roll for first holiday
+        if (rng.NextDouble() >= config.Probability) return holidays;
+
+        var earliest = accountStart.AddDays(60);
+        var latest = now.AddDays(-7);
+
+        var holiday1 = BuildHolidayPeriod(rng, config, earliest, latest);
+        if (holiday1 is not null) holidays.Add(holiday1);
+
+        // Long-tenure customers may get a second holiday (half the base probability)
+        if (tenureDays > 365 && rng.NextDouble() < config.Probability * 0.5)
+        {
+            var holiday2 = BuildHolidayPeriod(rng, config, earliest, latest);
+            if (holiday2 is not null && !HolidaysOverlap(holiday1!, holiday2))
+                holidays.Add(holiday2);
+        }
+
+        return holidays;
+    }
+
+    private static HolidayPeriod? BuildHolidayPeriod(
+        Random rng, HolidayConfig config, DateTime earliest, DateTime latest)
+    {
+        var duration = rng.Next(config.MinDays, config.MaxDays + 1);
+        var windowDays = (int)(latest - earliest).TotalDays - duration - 30; // 30 days buffer for booking
+        if (windowDays < 1) return null;
+
+        var departure = earliest.AddDays(rng.Next(30, windowDays + 30));
+        var destIndex = config.EligibleDestinations[rng.Next(config.EligibleDestinations.Length)];
+        var destination = Destinations[destIndex];
+        var flightCost = RandomDecimal(rng, config.FlightMin, config.FlightMax);
+        var bookingDate = departure.AddDays(-rng.Next(14, 31));
+
+        return new HolidayPeriod(departure, duration, destination, flightCost, bookingDate);
+    }
+
+    private static bool HolidaysOverlap(HolidayPeriod a, HolidayPeriod b)
+    {
+        var aEnd = a.DepartureDate.AddDays(a.DurationDays);
+        var bEnd = b.DepartureDate.AddDays(b.DurationDays);
+        // Also require 14-day gap between holidays
+        return a.DepartureDate.AddDays(-14) < bEnd && b.DepartureDate.AddDays(-14) < aEnd;
+    }
+
+    private static bool IsOnHoliday(List<HolidayPeriod> holidays, DateTime date)
+    {
+        foreach (var h in holidays)
+        {
+            if (date.Date >= h.DepartureDate.Date && date.Date < h.DepartureDate.AddDays(h.DurationDays).Date)
+                return true;
+        }
+        return false;
+    }
+
+    private static HolidayPeriod? GetCurrentHoliday(List<HolidayPeriod> holidays, DateTime date)
+    {
+        foreach (var h in holidays)
+        {
+            if (date.Date >= h.DepartureDate.Date && date.Date < h.DepartureDate.AddDays(h.DurationDays).Date)
+                return h;
+        }
+        return null;
+    }
+
+    private static Transaction MakeForeignTxn(
+        int accountId, decimal audAmount, string description,
+        DateTime createdAt, string currency, decimal originalAmount,
+        decimal exchangeRate, decimal feeAmount) =>
+        new()
+        {
+            AccountId = accountId,
+            Amount = audAmount,
+            Description = description,
+            TransactionType = TransactionType.Withdrawal,
+            Status = TransactionStatus.Settled,
+            SettledAt = createdAt,
+            CreatedAt = createdAt,
+            OriginalCurrency = currency,
+            OriginalAmount = originalAmount,
+            ExchangeRate = exchangeRate,
+            FeeAmount = feeAmount,
+        };
+
+    /// <summary>
+    /// Pick a foreign spend during a holiday: choose a destination merchant,
+    /// convert to AUD using the exchange rate (with small daily variance), and
+    /// calculate the 3% international transaction fee.
+    /// </summary>
+    private static (Transaction Txn, decimal TotalAud) PickForeignSpend(
+        Random rng, int accountId, HolidayPeriod holiday, PersonaTemplate persona, DateTime spendTime)
+    {
+        var dest = holiday.Destination;
+        var merchant = dest.Merchants[rng.Next(dest.Merchants.Length)];
+
+        var foreignAmount = RandomDecimal(rng, merchant.Min, merchant.Max);
+
+        // Persona-based scaling: budget travellers spend less
+        if (persona.Name is "Student" or "Modest Retiree")
+            foreignAmount = Math.Round(foreignAmount * RandomDecimal(rng, 0.4m, 0.7m), 2);
+        else if (persona.Name is "Zero-Hours Worker" or "Single Parent")
+            foreignAmount = Math.Round(foreignAmount * RandomDecimal(rng, 0.5m, 0.8m), 2);
+
+        // Daily FX variance: ±2% from base rate
+        var fxVariance = rng.NextDouble() * 0.04 - 0.02;
+        var effectiveRate = ForeignTransactionCalculator.ApplyFxVariance(dest.ExchangeRate, fxVariance);
+
+        // Convert foreign amount to AUD
+        var audAmount = ForeignTransactionCalculator.ConvertToAud(foreignAmount, effectiveRate);
+        var fee = ForeignTransactionCalculator.CalculateFee(audAmount, InternationalFeeRate);
+        var totalAud = audAmount + fee;
+
+        var txn = MakeForeignTxn(
+            accountId, -totalAud, merchant.Name,
+            spendTime, dest.Currency, foreignAmount, effectiveRate, fee);
+
+        return (txn, totalAud);
     }
 
     private static decimal RandomDecimal(Random rng, decimal min, decimal max) =>
