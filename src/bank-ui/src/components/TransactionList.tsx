@@ -4,6 +4,7 @@ import {
   TransactionStatus,
   transactionTypeLabel,
   formatCurrency,
+  formatForeignCurrency,
 } from '../types';
 
 const categoryIcons: Record<string, string> = {
@@ -181,6 +182,15 @@ export default function TransactionList({
                   {tx.status === TransactionStatus.Failed && tx.failureReason && (
                     <p className="text-xs text-red-400/80 mt-0.5">
                       {tx.failureReason}
+                    </p>
+                  )}
+                  {tx.originalCurrency && tx.originalAmount != null && tx.exchangeRate != null && (
+                    <p className="text-xs text-accent-amber mt-0.5">
+                      {formatForeignCurrency(tx.originalAmount, tx.originalCurrency)}
+                      {' · '}1 AUD = {tx.exchangeRate.toFixed(tx.exchangeRate >= 10 ? 0 : 2)} {tx.originalCurrency}
+                      {tx.feeAmount != null && tx.feeAmount > 0 && (
+                        <span className="text-text-muted"> · {formatCurrency(tx.feeAmount)} fee</span>
+                      )}
                     </p>
                   )}
                   <p className="text-xs text-text-secondary mt-0.5">

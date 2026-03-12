@@ -59,6 +59,10 @@ export interface Transaction {
   merchantLogoUrl: string | null;
   settledAt: string | null;
   createdAt: string;
+  originalCurrency: string | null;
+  originalAmount: number | null;
+  exchangeRate: number | null;
+  feeAmount: number | null;
 }
 
 export const accountTypeLabel: Record<AccountType, string> = {
@@ -123,6 +127,18 @@ export function formatCurrency(amount: number): string {
     style: 'currency',
     currency: 'AUD',
   }).format(amount);
+}
+
+export function formatForeignCurrency(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat('en-AU', {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: currency === 'JPY' || currency === 'IDR' ? 0 : 2,
+    }).format(amount);
+  } catch {
+    return `${currency} ${amount.toFixed(2)}`;
+  }
 }
 
 export interface PayeeLookup {

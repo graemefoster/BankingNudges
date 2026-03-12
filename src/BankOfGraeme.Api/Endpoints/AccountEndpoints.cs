@@ -39,7 +39,8 @@ public static class AccountEndpoints
                 t.Id, t.Amount, t.Description, t.TransactionType, t.Status,
                 t.FailureReason, t.SettledAt, t.CreatedAt,
                 MerchantCategory = MerchantCategoryMapper.Categorise(t.Description),
-                MerchantLogoUrl = MerchantCategoryMapper.GetMerchantLogoUrl(t.Description)
+                MerchantLogoUrl = MerchantCategoryMapper.GetMerchantLogoUrl(t.Description),
+                t.OriginalCurrency, t.OriginalAmount, t.ExchangeRate, t.FeeAmount,
             }));
         });
 

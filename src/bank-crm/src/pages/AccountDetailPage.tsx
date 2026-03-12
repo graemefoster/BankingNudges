@@ -4,7 +4,7 @@ import { getAccount, getTransactions, adjustBalance, closeAccount, getScheduledP
 import type { Account, Transaction, ScheduledPayment } from '../types';
 import {
   TransactionStatus,
-  formatCurrency, formatDateTime, formatDate, accountTypeLabel,
+  formatCurrency, formatForeignCurrency, formatDateTime, formatDate, accountTypeLabel,
   transactionTypeLabel,
 } from '../types';
 
@@ -456,14 +456,15 @@ export default function AccountDetailPage() {
               <th className="px-2 py-1 font-normal">Description</th>
               <th className="px-2 py-1 font-normal">Type</th>
               <th className="px-2 py-1 font-normal text-right">Amount</th>
+              <th className="px-2 py-1 font-normal">FX</th>
               <th className="px-2 py-1 font-normal">Status</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} className="px-2 py-4 text-center text-text-secondary">Loading...</td></tr>
+              <tr><td colSpan={6} className="px-2 py-4 text-center text-text-secondary">Loading...</td></tr>
             ) : transactions.length === 0 ? (
-              <tr><td colSpan={5} className="px-2 py-4 text-center text-text-secondary">No transactions found.</td></tr>
+              <tr><td colSpan={6} className="px-2 py-4 text-center text-text-secondary">No transactions found.</td></tr>
             ) : (
               transactions.map((t, i) => (
                 <tr key={t.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${t.status === TransactionStatus.Pending ? 'opacity-70' : ''} ${t.status === TransactionStatus.Failed ? 'bg-red-50' : ''}`}>
@@ -477,6 +478,18 @@ export default function AccountDetailPage() {
                   <td className="px-2 py-1 text-text-secondary">{transactionTypeLabel[t.transactionType]}</td>
                   <td className={`px-2 py-1 text-right font-mono ${t.status === TransactionStatus.Failed ? 'text-red-400' : t.amount >= 0 ? 'text-crm-secondary' : 'text-red-700'}`}>
                     {t.status === TransactionStatus.Failed ? '—' : `${t.amount >= 0 ? '+' : ''}${formatCurrency(t.amount)}`}
+                  </td>
+                  <td className="px-2 py-1 text-[10px] text-text-secondary">
+                    {t.originalCurrency && t.originalAmount != null && t.exchangeRate != null ? (
+                      <span>
+                        <span className="font-medium text-amber-700">{t.originalCurrency}</span>
+                        {' '}{formatForeignCurrency(t.originalAmount, t.originalCurrency)}
+                        <br />1 AUD = {t.exchangeRate >= 10 ? t.exchangeRate.toFixed(0) : t.exchangeRate.toFixed(4)}
+                        {t.feeAmount != null && t.feeAmount > 0 && (
+                          <><br />Fee: {formatCurrency(t.feeAmount)}</>
+                        )}
+                      </span>
+                    ) : '—'}
                   </td>
                   <td className="px-2 py-1">
                     {t.status === TransactionStatus.Pending ? (
