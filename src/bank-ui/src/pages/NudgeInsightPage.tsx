@@ -399,155 +399,51 @@ function PaymentRow({ payment, highlighted, accountId }: { payment: NudgeInsight
 
 /* ── SAVINGS section ────────────────────────────────────────────── */
 
-function annualInterest(balance: number, rate: number | null, bonusRate: number | null): number {
-  const totalRate = (rate ?? 0) + (bonusRate ?? 0);
-  return balance * totalRate / 100;
-}
-
-function offsetSavings(balance: number, homeLoanRate: number): number {
-  return balance * homeLoanRate / 100;
-}
-
 function SavingsSection({ context }: { context: NudgeInsightResponse['context'] }) {
   const { financial } = context;
   const accounts = financial.accounts ?? [];
-  const monthlyExpenses = Object.values(financial.spendByCategory).reduce((s, v) => s + v, 0);
-  const buffer = monthlyExpenses * 1.5;
-  const excessCash = Math.max(0, financial.currentBalance - buffer);
-
-  // Find the best savings rate to compare against
-  const bestSavingsAccount = accounts
-    .filter(a => a.accountType === 'Savings')
-    .sort((a, b) => ((b.interestRate ?? 0) + (b.bonusInterestRate ?? 0)) - ((a.interestRate ?? 0) + (a.bonusInterestRate ?? 0)))[0];
-  const bestSavingsRate = bestSavingsAccount
-    ? (bestSavingsAccount.interestRate ?? 0) + (bestSavingsAccount.bonusInterestRate ?? 0)
-    : null;
-
-  // Total annual benefit: interest earned + loan interest saved by offsets
-  const totalAnnualBenefit = accounts.reduce((sum, a) => {
-    if (a.accountType === 'Offset' && a.offsetHomeLoanRate != null) {
-      return sum + offsetSavings(a.balance, a.offsetHomeLoanRate);
-    }
-    return sum + annualInterest(a.balance, a.interestRate, a.bonusInterestRate);
-  }, 0);
 
   return (
     <div className="mb-6">
       <h3 className="text-base font-semibold text-text-primary mb-3 flex items-center gap-2">
-        <span>{categoryEmoji.SAVINGS}</span> Savings Opportunity
+        <span>{categoryEmoji.SAVINGS}</span> Your Accounts
       </h3>
-      <div className="bg-dark-elevated rounded-xl border border-border p-4 space-y-4">
-        {/* Per-account breakdown */}
+      <div className="bg-dark-elevated rounded-xl border border-border p-4 space-y-3">
         {accounts.length > 0 ? (
-          <div className="space-y-2">
-            <p className="text-xs text-text-muted uppercase tracking-wide mb-1">Your Accounts</p>
-            {accounts.map((acct) => {
-              const isOffset = acct.accountType === 'Offset' && acct.offsetHomeLoanRate != null;
-              const totalRate = (acct.interestRate ?? 0) + (acct.bonusInterestRate ?? 0);
-              const earning = isOffset
-                ? offsetSavings(acct.balance, acct.offsetHomeLoanRate!)
-                : annualInterest(acct.balance, acct.interestRate, acct.bonusInterestRate);
+          accounts.map((acct) => {
+            const isOffset = acct.accountType === 'Offset' && acct.offsetHomeLoanRate != null;
 
-              // Only suggest "could earn more" for non-Offset, non-Savings accounts
-              const couldEarnMore = !isOffset
-                && bestSavingsRate != null
-                && acct.accountType !== 'Savings'
-                && totalRate < bestSavingsRate
-                && acct.balance > 0;
-              const earningAtBestRate = couldEarnMore ? acct.balance * bestSavingsRate / 100 : 0;
-              const extraEarnings = earningAtBestRate - earning;
-
-              return (
-                <div key={acct.name} className="bg-dark-surface rounded-lg p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-text-primary">{acct.name}</p>
-                      <p className="text-xs text-text-muted">
-                        {isOffset
-                          ? `Offset · reducing home loan interest at ${acct.offsetHomeLoanRate!.toFixed(2)}%`
-                          : <>
-                              {acct.accountType}
-                              {acct.interestRate != null && ` · ${acct.interestRate.toFixed(2)}% p.a.`}
-                              {acct.bonusInterestRate != null && ` + ${acct.bonusInterestRate.toFixed(2)}% bonus`}
-                            </>
-                        }
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-text-primary tabular-nums">
-                        {formatCurrency(acct.balance)}
-                      </p>
-                      <p className="text-xs text-text-muted tabular-nums">
-                        {isOffset
-                          ? `saving ~${formatCurrency(earning)}/yr`
-                          : totalRate > 0
-                            ? `earning ~${formatCurrency(earning)}/yr`
-                            : null}
-                      </p>
-                    </div>
-                  </div>
-                  {couldEarnMore && extraEarnings > 10 && (
-                    <p className="text-xs text-accent-amber mt-2">
-                      At {bestSavingsRate.toFixed(2)}% this balance would earn ~{formatCurrency(earningAtBestRate)}/yr — that's {formatCurrency(extraEarnings)} more
-                    </p>
-                  )}
+            return (
+              <div key={acct.name} className="flex items-center justify-between py-2 border-b border-border/40 last:border-b-0">
+                <div>
+                  <p className="text-sm font-medium text-text-primary">{acct.name}</p>
+                  <p className="text-xs text-text-muted">
+                    {isOffset
+                      ? `Offset · ${acct.offsetHomeLoanRate!.toFixed(2)}% home loan rate`
+                      : <>
+                          {acct.accountType}
+                          {acct.interestRate != null && ` · ${acct.interestRate.toFixed(2)}% p.a.`}
+                          {acct.bonusInterestRate != null && ` + ${acct.bonusInterestRate.toFixed(2)}% bonus`}
+                        </>
+                    }
+                  </p>
                 </div>
-              );
-            })}
-            <div className="bg-dark-surface rounded-lg p-3 flex items-center justify-between border-t border-border">
-              <div>
-                <p className="text-sm font-semibold text-text-secondary">Total Usable Balance</p>
-                <p className="text-xs text-text-muted">Interest earned + loan interest saved: ~{formatCurrency(totalAnnualBenefit)}/yr</p>
+                <p className="text-sm font-semibold text-text-primary tabular-nums">
+                  {formatCurrency(acct.balance)}
+                </p>
               </div>
-              <p className="text-sm font-extrabold text-accent-teal tabular-nums">
-                {formatCurrency(financial.currentBalance)}
-              </p>
-            </div>
-          </div>
+            );
+          })
         ) : (
-          <div className="text-center">
-            <p className="text-xs text-text-muted uppercase tracking-wide mb-1">Total Balance</p>
-            <p className="text-3xl font-extrabold tracking-tight text-accent-teal">
-              {formatCurrency(financial.currentBalance)}
-            </p>
-          </div>
-        )}
-
-        {/* Expense buffer */}
-        <div className="space-y-2">
-          <p className="text-xs text-text-muted">
-            We look at your last 30 days of spending to estimate how much you might want to keep easily accessible.
+          <p className="text-sm text-text-muted text-center py-2">
+            Total balance: {formatCurrency(financial.currentBalance)}
           </p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-dark-surface rounded-lg p-3 text-center">
-              <p className="text-xs text-text-muted mb-1">Monthly Expenses</p>
-              <p className="text-sm font-bold text-text-primary">{formatCurrency(monthlyExpenses)}</p>
-              <p className="text-xs text-text-muted mt-1">Your spend over the last 30 days</p>
-            </div>
-            <div className="bg-dark-surface rounded-lg p-3 text-center">
-              <p className="text-xs text-text-muted mb-1">1.5× Buffer</p>
-              <p className="text-sm font-bold text-text-secondary">{formatCurrency(buffer)}</p>
-              <p className="text-xs text-text-muted mt-1">A comfortable cushion above your regular spend</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Excess cash */}
-        {excessCash > 0 ? (
-          <div className="bg-accent-teal/10 border border-accent-teal/30 rounded-lg p-3 text-center">
-            <p className="text-xs text-accent-teal mb-1">Above Buffer</p>
-            <p className="text-xl font-extrabold text-accent-teal">{formatCurrency(excessCash)}</p>
-            <p className="text-xs text-text-muted mt-1">
-              The amount across all your accounts beyond the 1.5× buffer
-            </p>
-          </div>
-        ) : (
-          <div className="bg-dark-surface rounded-lg p-3 text-center">
-            <p className="text-sm text-text-muted">
-              Your balance is within your expense buffer — keep building it up!
-            </p>
-          </div>
         )}
+
+        {/* Disclaimer */}
+        <p className="text-xs text-text-muted/70 leading-relaxed pt-2 border-t border-border/50">
+          This is general information only, not personal financial advice. Rates may change. Consider your personal circumstances, including tax implications, before making financial decisions.
+        </p>
       </div>
     </div>
   );

@@ -42,6 +42,10 @@ export default function NudgeCard({ nudge, onDismissed }: Props) {
         </p>
       </div>
 
+      <p className="text-[10px] text-text-muted/60 mb-2 ml-8">
+        General information only — not personal financial advice.
+      </p>
+
       <div className="flex gap-2">
         <button
           disabled={responding}

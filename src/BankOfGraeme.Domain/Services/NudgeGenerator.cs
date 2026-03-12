@@ -54,6 +54,8 @@ public class NudgeGenerator(
         - Never use the word "unfortunately".
         - This is contextual financial information, not personal financial advice.
         - Never recommend specific investment products or third-party services.
+        - When referencing interest rates or potential earnings, use neutral observational language. Prefer "For your reference" or "You may find it useful to know" framing. Never imply the customer is missing out, leaving money on the table, or could be doing better.
+        - Never frame information about savings rates or account balances as an opportunity, incentive, or call to action.
 
         Return ONLY valid JSON in this exact format, no other text:
         {

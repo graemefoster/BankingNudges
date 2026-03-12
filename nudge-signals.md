@@ -202,3 +202,36 @@ Both the on-demand endpoint and the batch runner enforce a **one-nudge-per-custo
 - **Batch runner**: Skips customers who already have a nudge created today.
 
 This prevents the same insight being repeated with slightly different wording when the underlying signals haven't changed. The weekly fatigue limit (max 3 per 7-day window) provides an additional broader cap.
+
+---
+
+## 9. Disclosure & Tone Requirements
+
+All customer-facing nudge surfaces carry a regulatory-style disclaimer to make clear that nudges are **informational context, not personal financial advice**.
+
+### UI disclaimers
+
+| Surface | Disclaimer text |
+|---------|----------------|
+| **Nudge card** (dashboard) | _"General information only — not personal financial advice."_ |
+| **Nudge insight page** (savings/interest section) | _"This is general information only, not personal financial advice. Interest is calculated on current balances and rates, which may change. Consider your personal circumstances, including tax implications, before making financial decisions."_ |
+
+### Tonal guidelines for the interest / savings section
+
+The insight page's account overview section shows interest rates and balances but must **not** feel like a sales pitch or imply the customer should move money:
+
+| ❌ Avoid | ✅ Prefer |
+|----------|----------|
+| "Savings Opportunity" | "Account Overview" |
+| "At 9.50% this would earn $X more" | "A higher rate is available on your savings account for reference" |
+| Bold teal "Above Buffer" with `font-extrabold` | Muted "Balance above estimated buffer" in secondary text |
+| "keep building it up!" | "Your balance is within your estimated expense buffer." |
+
+### LLM prompt guardrails (additions)
+
+Two rules were added to the `NudgeGenerator` system prompt:
+
+1. When referencing interest rates or potential earnings, use neutral observational language. Never imply the customer is missing out or leaving money on the table.
+2. Never frame savings rates or account balances as an opportunity, incentive, or call to action.
+
+These complement the existing "no financial advice" and "no product recommendations" rules.
