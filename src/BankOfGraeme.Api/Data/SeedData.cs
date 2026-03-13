@@ -177,7 +177,7 @@ public static class SeedData
     private const decimal InternationalFeeRate = 0.03m; // 3% international transaction fee
 
     private static readonly string[] TravelAgents =
-        ["FLIGHT CENTRE", "WEBJET", "SKYSCANNER", "BOOKING.COM", "EXPEDIA"];
+        ["FLIGHT CENTRE", "WEBJET", "SKYSCANNER", "BOOKING.COM", "EXPEDIA", "QANTAS", "VIRGIN AUSTRALIA"];
 
     private sealed record HolidayDestination(
         string Name, string Currency, decimal ExchangeRate,
@@ -256,6 +256,53 @@ public static class SeedData
     private sealed record HolidayPeriod(
         DateTime DepartureDate, int DurationDays, HolidayDestination Destination,
         decimal FlightCost, DateTime BookingDate);
+
+    /// <summary>
+    /// Guaranteed holiday scenarios for spotlight customers, anchored to virtual "now".
+    /// These ensure specific customers are always mid-trip, just-booked, or just-returned
+    /// regardless of random seed — so demo screens always have interesting travel data.
+    /// </summary>
+    private static List<HolidayPeriod> GetGuaranteedHolidays(string firstName, string lastName, DateTime now)
+    {
+        var holidays = new List<HolidayPeriod>();
+
+        // Chloe Martin — currently on holiday in Japan (departed 4 days ago, 10-day trip)
+        if (firstName == "Chloe" && lastName == "Martin")
+        {
+            var departure = now.AddDays(-4);
+            var dest = Destinations[3]; // Japan
+            holidays.Add(new HolidayPeriod(departure, 10, dest, 1850m,
+                departure.AddDays(-21)));
+        }
+        // Ethan Ross — just booked a Europe trip via Qantas (booking 3 days ago, departs in 18 days)
+        else if (firstName == "Ethan" && lastName == "Ross")
+        {
+            var departure = now.AddDays(18);
+            var dest = Destinations[5]; // Europe
+            holidays.Add(new HolidayPeriod(departure, 12, dest, 3200m,
+                now.AddDays(-3)));
+        }
+        // Grace Turner — just returned from a family Fiji trip (ended 2 days ago)
+        else if (firstName == "Grace" && lastName == "Turner")
+        {
+            var returnDate = now.AddDays(-2);
+            var duration = 9;
+            var departure = returnDate.AddDays(-duration);
+            var dest = Destinations[2]; // Fiji
+            holidays.Add(new HolidayPeriod(departure, duration, dest, 4200m,
+                departure.AddDays(-25)));
+        }
+        // Gabriel White — booked a Bali trip via Flight Centre last week, departs in 10 days
+        else if (firstName == "Gabriel" && lastName == "White")
+        {
+            var departure = now.AddDays(10);
+            var dest = Destinations[0]; // Bali
+            holidays.Add(new HolidayPeriod(departure, 14, dest, 2800m,
+                now.AddDays(-7)));
+        }
+
+        return holidays;
+    }
 
     private static readonly Dictionary<string, string[]> SavingsWithdrawalReasons = new()
     {
@@ -648,6 +695,17 @@ public static class SeedData
 
         // Generate holiday periods for this customer
         var holidays = GenerateHolidays(rng, persona, accountStart, now);
+
+        // Merge guaranteed holidays for spotlight customers (always on-trip / just-booked)
+        var guaranteed = GetGuaranteedHolidays(
+            profile.Customer.FirstName, profile.Customer.LastName, now);
+        foreach (var gh in guaranteed)
+        {
+            // Only add if it doesn't overlap with an existing random holiday
+            if (!holidays.Any(h => HolidaysOverlap(h, gh)))
+                holidays.Add(gh);
+        }
+
         var holidayBookingsGenerated = new HashSet<int>();
 
         // For casual workers, track when to change employer (~6-12 months)

@@ -225,3 +225,16 @@ Long-tenure customers (>1 year) have a chance of a second holiday at half the ba
 3. **Domestic spending suppressed:** No Woolworths, no Uber Eats — the customer is overseas. Recurring direct debits (rent, insurance, utilities) still fire as normal.
 4. **Foreign transactions:** Each has `OriginalCurrency`, `OriginalAmount`, `ExchangeRate` (with ±2% daily variance), and `FeeAmount` (3% international transaction fee).
 5. **Transaction Amount:** The `Amount` field is the total AUD debit (converted amount + fee).
+
+### Guaranteed spotlight scenarios
+
+Four spotlight customers always have travel activity near the current virtual date, regardless of random seed:
+
+| Customer | Scenario | Destination | Detail |
+|----------|----------|-------------|--------|
+| **Chloe Martin** | Currently on holiday | 🇯🇵 Japan | Departed 4 days ago, 10-day trip. Foreign transactions appearing daily. |
+| **Ethan Ross** | Just booked | 🇪🇺 Europe | Qantas booking 3 days ago ($3,200). Departs in 18 days. |
+| **Grace Turner** | Just returned | 🇫🇯 Fiji | Family trip ended 2 days ago. Recent Fiji merchant transactions visible. |
+| **Gabriel White** | Just booked | 🇮🇩 Bali | Flight Centre booking last week ($2,800). Departs in 10 days. |
+
+Travel agents include **Qantas** and **Virgin Australia** alongside Flight Centre, Webjet, Skyscanner, Booking.com, and Expedia.
