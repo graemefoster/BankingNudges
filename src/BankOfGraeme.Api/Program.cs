@@ -26,6 +26,8 @@ builder.Services.AddScoped<NudgeGenerator>();
 builder.Services.AddSingleton(new NudgeGeneratorSettings(
     builder.Configuration["AZURE_OPENAI_DEPLOYMENT"] ?? "gpt-4o"));
 builder.Services.AddScoped<NudgeBatchRunner>();
+builder.Services.AddScoped<NudgeChatAgent>();
+builder.Services.AddScoped<NudgeChatTools>();
 
 builder.Services.AddSingleton<ResponsesClient>(_ =>
 {
@@ -80,5 +82,8 @@ app.MapTimeTravelEndpoints();
 
 // Nudges
 app.MapNudgeEndpoints();
+
+// Nudge chat
+app.MapChatEndpoints();
 
 app.Run();

@@ -86,6 +86,7 @@ The seeder creates **150 customers** across 8 personas with realistic Australian
 | Frontend | React 19 + TypeScript + Vite |
 | CRM Frontend | React 19 + TypeScript + Vite (separate app) |
 | AI Nudges | Azure OpenAI (Responses API) via openai-dotnet SDK |
+| AI Chat Agent | Microsoft Agent Framework (`Microsoft.Agents.AI.OpenAI`) |
 | Styling | Tailwind CSS v4 |
 | Routing | React Router |
 
@@ -198,3 +199,41 @@ Authentication uses `DefaultAzureCredential` — no API key needed when running 
 | `/api/nudges/batch/run` | POST | Trigger batch `{ sampleSize?, customerIds? }` |
 | `/api/nudges/{customerId}/history` | GET | Last 10 nudges with outcomes |
 | `/api/customers/{customerId}/context` | GET | Raw context sent to LLM (debug) |
+
+## Nudge Chat (Agentic)
+
+Customers can chat with an AI agent about their nudges via a slide-out drawer on the dashboard. The agent is pre-seeded with the nudge's financial context snapshot and can fetch nudge history on demand.
+
+### Architecture
+
+Built with **Microsoft Agent Framework** (`Microsoft.Agents.AI.OpenAI`) — the successor to Semantic Kernel for agentic patterns. The agent uses `AsAIAgent()` with the existing Azure OpenAI deployment.
+
+```
+NudgeChatAgent    → builds system prompt from nudge + ContextSnapshot
+NudgeChatTools    → tool: GetNudgeHistory (on-demand, agent-callable)
+ChatEndpoints     → SSE streaming endpoint for real-time responses
+ChatDrawer (React)→ slide-up drawer with streaming message display
+```
+
+### Context Strategy (Hybrid)
+
+- **Pre-seeded**: System prompt contains the current nudge message, reasoning, full financial summary (accounts, spend by category, deltas, upcoming payments, active signals)
+- **Tool**: `GetNudgeHistory` is available for the agent to call when the customer asks about previous insights
+
+### Chat API
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/chat/nudge/start` | POST | Start session: `{ customerId, nudgeId }` → `{ sessionId }` |
+| `/api/chat/nudge/message` | POST | Send message: `{ sessionId, message }` → SSE stream |
+| `/api/chat/nudge/{sessionId}` | DELETE | Clean up session |
+
+### Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **Microsoft Agent Framework, not Semantic Kernel** | Agent Framework (`Microsoft.Agents.AI`) is Microsoft's successor, using `AsAIAgent()` + `RunStreamingAsync()` pattern |
+| **Hybrid context (pre-seed + tool)** | Pre-seeding avoids round-trips for common queries; tool avoids bloating every prompt with full history |
+| **Per-request agent creation** | Each chat session creates a fresh agent with the specific nudge's context. No shared state between customers |
+| **SSE streaming** | Tokens stream to the frontend as they're generated for a responsive chat feel |
+| **Sessions are ephemeral** | Chat history lives in-memory during the session. Future: persist to DB for audit |

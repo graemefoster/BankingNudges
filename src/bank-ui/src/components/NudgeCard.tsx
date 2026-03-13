@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 interface Props {
   nudge: NudgeDto;
   onDismissed: () => void;
+  onChat: () => void;
 }
 
 const urgencyConfig: Record<string, { border: string; bg: string; icon: string }> = {
@@ -14,7 +15,7 @@ const urgencyConfig: Record<string, { border: string; bg: string; icon: string }
   LOW: { border: 'border-accent-teal/40', bg: 'bg-accent-teal/10', icon: '🟢' },
 };
 
-export default function NudgeCard({ nudge, onDismissed }: Props) {
+export default function NudgeCard({ nudge, onDismissed, onChat }: Props) {
   const [responding, setResponding] = useState(false);
   const navigate = useNavigate();
   const config = urgencyConfig[nudge.urgency] ?? urgencyConfig.MEDIUM;
@@ -53,6 +54,14 @@ export default function NudgeCard({ nudge, onDismissed }: Props) {
           className="flex-1 text-xs font-semibold py-2 rounded-lg bg-accent-teal text-white hover:bg-accent-teal/90 transition-colors disabled:opacity-50"
         >
           {nudge.cta}
+        </button>
+        <button
+          disabled={responding}
+          onClick={onChat}
+          className="text-xs font-medium py-2 px-3 rounded-lg bg-dark-surface text-accent-teal hover:bg-dark-elevated transition-colors disabled:opacity-50"
+          title="Chat about this insight"
+        >
+          💬
         </button>
         <button
           disabled={responding}

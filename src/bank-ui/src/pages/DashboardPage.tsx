@@ -6,6 +6,7 @@ import { getCustomerAccounts, generateNudge, getActiveHoliday } from '../api/ban
 import AccountCard from '../components/AccountCard';
 import NudgeCard from '../components/NudgeCard';
 import TravelBanner from '../components/TravelBanner';
+import ChatDrawer from '../components/ChatDrawer';
 
 export default function DashboardPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -15,6 +16,7 @@ export default function DashboardPage() {
   const [nudgeLoading, setNudgeLoading] = useState(true);
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [activeHoliday, setActiveHoliday] = useState<ActiveHoliday | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
   const navigate = useNavigate();
 
   const customerId = sessionStorage.getItem('customerId');
@@ -78,6 +80,7 @@ export default function DashboardPage() {
           <NudgeCard
             nudge={nudgeResult.nudge}
             onDismissed={() => setNudgeDismissed(true)}
+            onChat={() => setChatOpen(true)}
           />
         ) : nudgeResult && !nudgeResult.generated ? (
           <div className={`text-center text-sm py-3 rounded-xl border ${
@@ -111,6 +114,13 @@ export default function DashboardPage() {
             <AccountCard key={a.id} account={a} />
           ))}
         </div>
+      )}
+      {chatOpen && nudgeResult?.nudge && customerId && (
+        <ChatDrawer
+          nudge={nudgeResult.nudge}
+          customerId={Number(customerId)}
+          onClose={() => setChatOpen(false)}
+        />
       )}
     </div>
   );

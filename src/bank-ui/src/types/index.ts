@@ -258,6 +258,15 @@ export interface TransactionFilters {
   to?: string;
 }
 
+export interface ChatSession {
+  sessionId: string;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export const merchantCategories = [
   'Groceries', 'Fuel', 'Dining', 'Bars', 'Transport', 'Health', 'Retail', 'Utilities', 'Other'
 ] as const;

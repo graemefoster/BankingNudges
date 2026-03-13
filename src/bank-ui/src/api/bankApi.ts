@@ -168,3 +168,58 @@ export async function getActiveHoliday(customerId: string): Promise<ActiveHolida
   if (!res.ok) throw new Error(`Request failed: ${res.status}`);
   return res.json() as Promise<ActiveHoliday>;
 }
+
+export function startChatSession(customerId: number, nudgeId: number): Promise<import('../types').ChatSession> {
+  return fetchJson<import('../types').ChatSession>(`${BASE}/chat/nudge/start`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ customerId, nudgeId }),
+  });
+}
+
+export async function* sendChatMessage(sessionId: string, message: string): AsyncGenerator<string> {
+  const res = await fetch(`${BASE}/chat/nudge/message`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, message }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(text || `Chat request failed: ${res.status}`);
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error('No response body');
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    // Parse SSE lines
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6).trim();
+      if (data === '[DONE]') return;
+
+      try {
+        const parsed = JSON.parse(data) as { content: string };
+        if (parsed.content) yield parsed.content;
+      } catch {
+        // Skip unparseable chunks
+      }
+    }
+  }
+}
+
+export function deleteChatSession(sessionId: string): Promise<void> {
+  return fetchJson<void>(`${BASE}/chat/nudge/${sessionId}`, { method: 'DELETE' });
+}
