@@ -146,7 +146,9 @@ export default function NudgeInsightPage() {
       {nudge.category === 'SAVINGS' && (
         <SavingsSection context={context} />
       )}
-      {nudge.category === 'TRAVEL' && (
+
+      {/* Travel evidence shows whenever travel signals exist, regardless of nudge category */}
+      {context.signals.some(s => s.type === 'FOREIGN_SPEND_NO_HOLIDAY' || s.type === 'FLIGHT_BOOKING_DETECTED') && (
         <TravelSection context={context} />
       )}
 

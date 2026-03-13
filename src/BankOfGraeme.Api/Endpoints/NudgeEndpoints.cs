@@ -208,7 +208,10 @@ public static class NudgeEndpoints
                         u.Merchant, u.Amount, u.DueInDays, u.Confidence, u.Source)).ToList(),
                     Signals: context.Signals.Select(s => new NudgeInsightSignal(
                         s.Type.ToString(), s.Severity.ToString(), s.Category, s.Delta,
-                        s.PaymentMerchant, s.PaymentAmount, s.DueInDays)).ToList()));
+                        s.PaymentMerchant, s.PaymentAmount, s.DueInDays,
+                        s.Evidence?.Select(e => new NudgeInsightEvidenceTxn(
+                            e.Description, e.Amount, e.Date, e.OriginalCurrency,
+                            e.OriginalAmount, e.ExchangeRate, e.FeeAmount)).ToList())).ToList()));
 
             return Results.Ok(response);
         });
@@ -259,4 +262,5 @@ public record NudgeInsightContext(NudgeInsightFinancial Financial, List<NudgeIns
 public record NudgeInsightFinancial(decimal CurrentBalance, decimal AvgMonthlyIncome, Dictionary<string, decimal> SpendByCategory, Dictionary<string, double> SpendDelta, int DaysUntilLikelyPayday, List<NudgeInsightAccount>? Accounts = null);
 public record NudgeInsightAccount(string Name, string AccountType, decimal Balance, decimal? InterestRate, decimal? BonusInterestRate, decimal? OffsetHomeLoanRate);
 public record NudgeInsightPayment(string Merchant, decimal Amount, int DueInDays, string Confidence, string Source);
-public record NudgeInsightSignal(string Type, string Severity, string? Category, double? Delta, string? PaymentMerchant, decimal? PaymentAmount, int? DueInDays);
+public record NudgeInsightSignal(string Type, string Severity, string? Category, double? Delta, string? PaymentMerchant, decimal? PaymentAmount, int? DueInDays, List<NudgeInsightEvidenceTxn>? Evidence);
+public record NudgeInsightEvidenceTxn(string Description, decimal Amount, DateTime Date, string? OriginalCurrency, decimal? OriginalAmount, decimal? ExchangeRate, decimal? FeeAmount);
