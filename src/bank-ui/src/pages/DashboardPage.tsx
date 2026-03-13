@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Account, NudgeGenerateResult } from '../types';
+import type { Account, NudgeGenerateResult, ActiveHoliday } from '../types';
 import { formatCurrency } from '../types';
-import { getCustomerAccounts, generateNudge } from '../api/bankApi';
+import { getCustomerAccounts, generateNudge, getActiveHoliday } from '../api/bankApi';
 import AccountCard from '../components/AccountCard';
 import NudgeCard from '../components/NudgeCard';
+import TravelBanner from '../components/TravelBanner';
 
 export default function DashboardPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -13,6 +14,7 @@ export default function DashboardPage() {
   const [nudgeResult, setNudgeResult] = useState<NudgeGenerateResult | null>(null);
   const [nudgeLoading, setNudgeLoading] = useState(false);
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
+  const [activeHoliday, setActiveHoliday] = useState<ActiveHoliday | null>(null);
   const navigate = useNavigate();
 
   const customerId = sessionStorage.getItem('customerId');
@@ -27,6 +29,9 @@ export default function DashboardPage() {
       .then(setAccounts)
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
+    getActiveHoliday(customerId)
+      .then(setActiveHoliday)
+      .catch(() => { /* holiday banner is non-critical */ });
   }, [customerId, navigate]);
 
   const handleGenerateNudge = async () => {
@@ -55,6 +60,9 @@ export default function DashboardPage() {
           {customerName ?? 'Customer'}
         </h2>
       </div>
+
+      {/* Travel banner — shown when the customer has a registered holiday today */}
+      {activeHoliday && <TravelBanner holiday={activeHoliday} />}
 
       {/* Total balance */}
       <div className="bg-gradient-to-br from-accent-teal to-accent-cyan rounded-2xl p-5 mb-6 text-center">

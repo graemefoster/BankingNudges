@@ -27,6 +27,18 @@ public static class CustomerHolidayEndpoints
             return Results.Ok(holidays);
         });
 
+        group.MapGet("/active", async (int customerId, BankDbContext db, IDateTimeProvider dateTime) =>
+        {
+            var today = dateTime.Today;
+            var active = await db.CustomerHolidays
+                .AsNoTracking()
+                .Where(h => h.CustomerId == customerId && h.StartDate <= today && h.EndDate >= today)
+                .Select(h => new { h.Id, h.Destination, h.StartDate, h.EndDate })
+                .FirstOrDefaultAsync();
+
+            return active is not null ? Results.Ok(active) : Results.NoContent();
+        });
+
         group.MapPost("/", async (int customerId, RegisterHolidayRequest req, BankDbContext db, IDateTimeProvider dateTime) =>
         {
             var customer = await db.Customers.FindAsync(customerId);

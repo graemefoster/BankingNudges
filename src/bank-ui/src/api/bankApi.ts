@@ -1,4 +1,4 @@
-import type { Account, Customer, Transaction, ScheduledPayment, NudgeInsightResponse, NudgeHistoryItem, TransactionFilters } from '../types';
+import type { Account, Customer, Transaction, ScheduledPayment, NudgeInsightResponse, NudgeHistoryItem, TransactionFilters, ActiveHoliday } from '../types';
 
 const BASE = '/api';
 
@@ -160,4 +160,11 @@ export function getNudgeInsight(nudgeId: number): Promise<NudgeInsightResponse> 
 
 export function getNudgeHistory(customerId: string): Promise<NudgeHistoryItem[]> {
   return fetchJson<NudgeHistoryItem[]>(`${BASE}/nudges/${customerId}/history`);
+}
+
+export async function getActiveHoliday(customerId: string): Promise<ActiveHoliday | null> {
+  const res = await fetch(`${BASE}/customers/${customerId}/holidays/active`);
+  if (res.status === 204 || res.status === 404) return null;
+  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+  return res.json() as Promise<ActiveHoliday>;
 }

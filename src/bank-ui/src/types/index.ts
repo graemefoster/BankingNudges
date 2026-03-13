@@ -8,6 +8,13 @@ export interface Customer {
   accountCount: number;
 }
 
+export interface ActiveHoliday {
+  id: number;
+  destination: string;
+  startDate: string;
+  endDate: string;
+}
+
 export const AccountType = {
   Transaction: 0,
   Savings: 1,
