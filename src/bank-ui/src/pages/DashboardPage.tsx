@@ -91,7 +91,11 @@ export default function DashboardPage() {
             onDismissed={() => setNudgeDismissed(true)}
           />
         ) : nudgeResult && !nudgeResult.generated ? (
-          <div className="text-center text-sm text-text-secondary py-3 bg-dark-elevated rounded-xl border border-border">
+          <div className={`text-center text-sm py-3 rounded-xl border ${
+            nudgeResult.reason?.includes('⚠️')
+              ? 'text-amber-400 bg-amber-950/30 border-amber-500/30'
+              : 'text-text-secondary bg-dark-elevated border-border'
+          }`}>
             {nudgeResult.reason ?? 'No insights right now'}
           </div>
         ) : (

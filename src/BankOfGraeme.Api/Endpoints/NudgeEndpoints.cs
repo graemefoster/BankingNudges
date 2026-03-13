@@ -99,7 +99,17 @@ public static class NudgeEndpoints
                         Reason: null));
                 }
 
-                return Results.Ok(new NudgeGenerateResponse(false, null, "No insights right now — your finances look on track 👍"));
+                // Distinguish AI service errors from genuinely having nothing to say
+                var isServiceError = outcome.SkipReason is not null &&
+                    (outcome.SkipReason.Contains("Azure OpenAI", StringComparison.OrdinalIgnoreCase) ||
+                     outcome.SkipReason.Contains("exception", StringComparison.OrdinalIgnoreCase) ||
+                     outcome.SkipReason.Contains("validation failed", StringComparison.OrdinalIgnoreCase));
+
+                var reason = isServiceError
+                    ? "Our insights engine is temporarily unavailable — please try again shortly ⚠️"
+                    : "No insights right now — your finances look on track 👍";
+
+                return Results.Ok(new NudgeGenerateResponse(false, null, reason));
             }
 
             var nudge = new Nudge
