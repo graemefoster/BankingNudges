@@ -207,6 +207,16 @@ export interface NudgeInsightPayment {
   source: string;
 }
 
+export interface NudgeEvidenceTransaction {
+  description: string;
+  amount: number;
+  date: string;
+  originalCurrency: string | null;
+  originalAmount: number | null;
+  exchangeRate: number | null;
+  feeAmount: number | null;
+}
+
 export interface NudgeInsightSignal {
   type: string;
   severity: string;
@@ -215,6 +225,7 @@ export interface NudgeInsightSignal {
   paymentMerchant: string | null;
   paymentAmount: number | null;
   dueInDays: number | null;
+  evidence: NudgeEvidenceTransaction[] | null;
 }
 
 export interface NudgeInsightContext {

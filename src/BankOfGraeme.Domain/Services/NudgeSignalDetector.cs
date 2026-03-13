@@ -19,6 +19,15 @@ public enum SignalSeverity
     HIGH
 }
 
+public record EvidenceTransaction(
+    string Description,
+    decimal Amount,
+    DateTime Date,
+    string? OriginalCurrency = null,
+    decimal? OriginalAmount = null,
+    decimal? ExchangeRate = null,
+    decimal? FeeAmount = null);
+
 public record NudgeSignal(
     SignalType Type,
     SignalSeverity Severity,
@@ -26,7 +35,8 @@ public record NudgeSignal(
     double? Delta = null,
     string? PaymentMerchant = null,
     decimal? PaymentAmount = null,
-    int? DueInDays = null);
+    int? DueInDays = null,
+    List<EvidenceTransaction>? Evidence = null);
 
 public class NudgeSignalDetector
 {

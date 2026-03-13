@@ -72,6 +72,24 @@ public class TravelSignalDetectionTests : IDisposable
         ctx.Signals.ShouldContain(s => s.Type == SignalType.FOREIGN_SPEND_NO_HOLIDAY);
         var signal = ctx.Signals.First(s => s.Type == SignalType.FOREIGN_SPEND_NO_HOLIDAY);
         signal.Category.ShouldBe("JPY");
+        signal.Evidence.ShouldNotBeNull();
+        signal.Evidence.Count.ShouldBe(1);
+        signal.Evidence[0].OriginalCurrency.ShouldBe("JPY");
+        signal.Evidence[0].OriginalAmount.ShouldBe(5000m);
+    }
+
+    [Fact]
+    public async Task ForeignSpend_EvidenceCappedAt5()
+    {
+        for (int i = 0; i < 8; i++)
+            AddForeignTransaction(daysAgo: i % 6 + 1, currency: "JPY", originalAmount: 1000m * (i + 1), exchangeRate: 97m, amount: -(10m * (i + 1)));
+
+        var ctx = await _assembler.AssembleAsync(1);
+
+        ctx.ShouldNotBeNull();
+        var signal = ctx.Signals.First(s => s.Type == SignalType.FOREIGN_SPEND_NO_HOLIDAY);
+        signal.Evidence.ShouldNotBeNull();
+        signal.Evidence.Count.ShouldBe(5);
     }
 
     [Fact]
@@ -134,6 +152,9 @@ public class TravelSignalDetectionTests : IDisposable
         var signal = ctx.Signals.First(s => s.Type == SignalType.FLIGHT_BOOKING_DETECTED);
         signal.PaymentMerchant.ShouldBe("QANTAS - EUROPE");
         signal.PaymentAmount.ShouldBe(1850m);
+        signal.Evidence.ShouldNotBeNull();
+        signal.Evidence.Count.ShouldBe(1);
+        signal.Evidence[0].Description.ShouldBe("QANTAS - EUROPE");
     }
 
     [Fact]

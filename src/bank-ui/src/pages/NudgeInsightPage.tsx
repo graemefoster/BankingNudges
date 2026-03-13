@@ -4,9 +4,10 @@ import type {
   NudgeInsightResponse,
   NudgeInsightSignal,
   NudgeInsightPayment,
+  NudgeEvidenceTransaction,
   Account,
 } from '../types';
-import { formatCurrency, AccountType } from '../types';
+import { formatCurrency, formatForeignCurrency, AccountType } from '../types';
 import { getNudgeInsight, getCustomerAccounts } from '../api/bankApi';
 
 /* ── helpers ────────────────────────────────────────────────────── */
@@ -43,6 +44,8 @@ const signalLabel: Record<string, string> = {
   SPEND_SPIKE: 'Spend Spike',
   EXCESS_CASH_SITTING: 'Excess Cash',
   PAYDAY_INCOMING: 'Payday Soon',
+  FOREIGN_SPEND_NO_HOLIDAY: 'Foreign Spending',
+  FLIGHT_BOOKING_DETECTED: 'Flight Booking',
 };
 
 const categoryEmoji: Record<string, string> = {
@@ -50,6 +53,7 @@ const categoryEmoji: Record<string, string> = {
   CASHFLOW: '💰',
   UPCOMING_PAYMENT: '📅',
   SAVINGS: '🏦',
+  TRAVEL: '✈️',
 };
 
 /* ── page component ─────────────────────────────────────────────── */
@@ -141,6 +145,9 @@ export default function NudgeInsightPage() {
       )}
       {nudge.category === 'SAVINGS' && (
         <SavingsSection context={context} />
+      )}
+      {nudge.category === 'TRAVEL' && (
+        <TravelSection context={context} />
       )}
 
       {/* Show upcoming payments for any category that has them (unless already the primary section) */}
@@ -445,6 +452,71 @@ function SavingsSection({ context }: { context: NudgeInsightResponse['context'] 
           This is general information only, not personal financial advice. Rates may change. Consider your personal circumstances, including tax implications, before making financial decisions.
         </p>
       </div>
+    </div>
+  );
+}
+
+/* ── TRAVEL section ─────────────────────────────────────────────── */
+
+const currencyToFlag: Record<string, string> = {
+  IDR: '🇮🇩', THB: '🇹🇭', FJD: '🇫🇯', JPY: '🇯🇵', NZD: '🇳🇿',
+  EUR: '🇪🇺', USD: '🇺🇸', GBP: '🇬🇧', SGD: '🇸🇬', VND: '🇻🇳', KRW: '🇰🇷',
+};
+
+function TravelSection({ context }: { context: NudgeInsightResponse['context'] }) {
+  const { signals } = context;
+  const travelSignals = signals.filter(
+    (s) => s.type === 'FOREIGN_SPEND_NO_HOLIDAY' || s.type === 'FLIGHT_BOOKING_DETECTED',
+  );
+
+  const allEvidence = travelSignals.flatMap((s) => s.evidence ?? []);
+
+  if (allEvidence.length === 0) return null;
+
+  return (
+    <div className="mb-6">
+      <h3 className="text-base font-semibold text-text-primary mb-3 flex items-center gap-2">
+        <span>{categoryEmoji.TRAVEL}</span> Travel Activity Detected
+      </h3>
+      <div className="bg-dark-elevated rounded-xl border border-border p-4 space-y-2">
+        {allEvidence.map((txn, i) => (
+          <TravelEvidenceRow key={i} txn={txn} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TravelEvidenceRow({ txn }: { txn: NudgeEvidenceTransaction }) {
+  const isFx = txn.originalCurrency != null;
+  const flag = isFx ? (currencyToFlag[txn.originalCurrency!] ?? '🌍') : '✈️';
+  const dateStr = new Date(txn.date).toLocaleDateString('en-AU', {
+    day: 'numeric', month: 'short',
+  });
+
+  return (
+    <div className="flex items-center gap-3 bg-dark-surface rounded-lg p-3">
+      <span className="text-lg shrink-0">{flag}</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-text-primary truncate">{txn.description}</p>
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          <span className="text-xs text-text-muted">{dateStr}</span>
+          {isFx && txn.originalAmount != null && (
+            <span className="text-xs text-amber-400">
+              {formatForeignCurrency(txn.originalAmount, txn.originalCurrency!)}
+              {txn.exchangeRate != null && ` @ ${txn.exchangeRate.toFixed(4)}`}
+            </span>
+          )}
+          {isFx && txn.feeAmount != null && txn.feeAmount > 0 && (
+            <span className="text-xs text-text-muted">
+              +{formatCurrency(txn.feeAmount)} fee
+            </span>
+          )}
+        </div>
+      </div>
+      <span className="text-sm font-bold text-text-primary tabular-nums shrink-0">
+        {formatCurrency(Math.abs(txn.amount))}
+      </span>
     </div>
   );
 }

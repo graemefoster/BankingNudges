@@ -149,10 +149,19 @@ public class NudgeContextAssembler(
                     .Distinct()
                     .ToList();
 
+                var evidence = recentForeignTxns
+                    .OrderByDescending(t => t.CreatedAt)
+                    .Take(5)
+                    .Select(t => new EvidenceTransaction(
+                        t.Description, t.Amount, t.CreatedAt,
+                        t.OriginalCurrency, t.OriginalAmount, t.ExchangeRate, t.FeeAmount))
+                    .ToList();
+
                 signals.Add(new NudgeSignal(
                     SignalType.FOREIGN_SPEND_NO_HOLIDAY,
                     SignalSeverity.MEDIUM,
-                    Category: string.Join(", ", currencies)));
+                    Category: string.Join(", ", currencies),
+                    Evidence: evidence));
             }
         }
 
@@ -172,12 +181,20 @@ public class NudgeContextAssembler(
             var hasFutureHoliday = registeredHolidays.Any(h => h.StartDate > today);
             if (!hasFutureHoliday)
             {
+                var evidence = recentFlightBookings
+                    .OrderByDescending(t => Math.Abs(t.Amount))
+                    .Take(3)
+                    .Select(t => new EvidenceTransaction(
+                        t.Description, t.Amount, t.CreatedAt))
+                    .ToList();
+
                 var booking = recentFlightBookings.OrderByDescending(t => Math.Abs(t.Amount)).First();
                 signals.Add(new NudgeSignal(
                     SignalType.FLIGHT_BOOKING_DETECTED,
                     SignalSeverity.MEDIUM,
                     PaymentMerchant: booking.Description,
-                    PaymentAmount: Math.Abs(booking.Amount)));
+                    PaymentAmount: Math.Abs(booking.Amount),
+                    Evidence: evidence));
             }
         }
 
