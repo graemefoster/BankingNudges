@@ -72,7 +72,7 @@ export default function DashboardPage() {
         ) : nudgeLoading ? (
           <div className="flex items-center justify-center gap-2 py-4">
             <div className="w-5 h-5 border-2 border-accent-teal border-t-transparent rounded-full animate-spin" />
-            <span className="text-xs text-text-secondary">Checking your finances…</span>
+            <span className="text-xs text-text-secondary">Getting financial insights...</span>
           </div>
         ) : nudgeResult?.generated && nudgeResult.nudge ? (
           <NudgeCard
