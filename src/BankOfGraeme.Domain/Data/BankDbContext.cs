@@ -25,6 +25,7 @@ public class BankDbContext : DbContext
     public DbSet<SystemSettings> SystemSettings => Set<SystemSettings>();
     public DbSet<ScheduledPayment> ScheduledPayments => Set<ScheduledPayment>();
     public DbSet<Nudge> Nudges => Set<Nudge>();
+    public DbSet<CustomerHoliday> CustomerHolidays => Set<CustomerHoliday>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
@@ -213,6 +214,18 @@ public class BankDbContext : DbContext
 
             e.HasIndex(n => new { n.CustomerId, n.Status });
             e.HasIndex(n => n.CreatedAt);
+        });
+
+        modelBuilder.Entity<CustomerHoliday>(e =>
+        {
+            e.HasKey(h => h.Id);
+            e.Property(h => h.Destination).HasMaxLength(100);
+
+            e.HasOne(h => h.Customer)
+                .WithMany()
+                .HasForeignKey(h => h.CustomerId);
+
+            e.HasIndex(h => new { h.CustomerId, h.StartDate, h.EndDate });
         });
     }
 }

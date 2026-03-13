@@ -235,3 +235,58 @@ Two rules were added to the `NudgeGenerator` system prompt:
 2. Never frame savings rates or account balances as an opportunity, incentive, or call to action.
 
 These complement the existing "no financial advice" and "no product recommendations" rules.
+
+---
+
+## 10. Travel Signals
+
+Two travel-related signals help the bank proactively engage with customers about overseas spending. These are detected in the `NudgeContextAssembler` (not the stateless `NudgeSignalDetector`) because they require querying the `CustomerHolidays` table.
+
+> **Source code:** `src/BankOfGraeme.Domain/Services/NudgeContextAssembler.cs` (detection logic), `src/BankOfGraeme.Domain/Models/CustomerHoliday.cs` (holiday registration entity).
+
+### `FOREIGN_SPEND_NO_HOLIDAY` — Foreign transactions without a registered holiday
+
+| Field | Value |
+|-------|-------|
+| **Condition** | Customer has transactions with `OriginalCurrency IS NOT NULL` in the last 7 days, and no `CustomerHoliday` record covers those transaction dates |
+| **Severity** | MEDIUM |
+| **Category field** | Comma-separated list of foreign currencies detected (e.g. "JPY", "IDR, THB") |
+| **Gated by** | _(none — always evaluated when foreign spend exists)_ |
+
+**Purpose:** When the bank sees foreign spending but the customer hasn't told them they're travelling, this is a chance to proactively reach out. Registering a holiday can improve fraud detection, prevent false card blocks, and potentially waive certain fees.
+
+### `FLIGHT_BOOKING_DETECTED` — Large flight vendor purchase, no future holiday registered
+
+| Field | Value |
+|-------|-------|
+| **Condition** | Domestic AUD transaction > $300 at a known flight vendor in the last 7 days, and no `CustomerHoliday` with a future start date exists |
+| **Severity** | MEDIUM |
+| **PaymentMerchant** | The flight vendor description (e.g. "QANTAS - EUROPE") |
+| **PaymentAmount** | Absolute value of the transaction amount |
+| **Gated by** | _(none — always evaluated when flight booking exists)_ |
+
+**Known flight vendors:** QANTAS, VIRGIN AUSTRALIA, JETSTAR, FLIGHT CENTRE, WEBJET, SKYSCANNER, BOOKING.COM, EXPEDIA, REX AIRLINES, SINGAPORE AIRLINES, EMIRATES.
+
+**Purpose:** When we see a customer has booked flights, we can nudge them to register their upcoming holiday. This helps both parties — the bank can whitelist the destination for fraud monitoring, and the customer avoids surprise card blocks.
+
+### CustomerHoliday Entity
+
+Customers can register their travel plans via `POST /api/customers/{id}/holidays`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `Id` | int | Auto-generated primary key |
+| `CustomerId` | int | FK to Customer |
+| `Destination` | string | Free-text destination (e.g. "Fiji", "Japan") |
+| `StartDate` | DateOnly | Trip start date |
+| `EndDate` | DateOnly | Trip end date |
+| `CreatedAt` | DateTime | Auto-stamped by SaveChanges interceptor |
+
+### Seeded Scenarios
+
+| Customer | Has Registered Holiday? | Expected Signal |
+|----------|------------------------|-----------------|
+| Chloe Martin | ❌ No (currently in Japan) | `FOREIGN_SPEND_NO_HOLIDAY` — JPY transactions detected |
+| Ethan Ross | ❌ No (booked Europe trip) | `FLIGHT_BOOKING_DETECTED` — QANTAS booking >$300 |
+| Grace Turner | ✅ Yes (Fiji, just returned) | _(no signal — holiday covers her FJD spending)_ |
+| Gabriel White | ✅ Yes (Bali, departing soon) | _(no signal — future holiday registered)_ |

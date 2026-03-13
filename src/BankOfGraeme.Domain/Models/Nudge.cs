@@ -12,7 +12,8 @@ public enum NudgeCategory
     CASHFLOW,
     SAVINGS,
     SPENDING,
-    UPCOMING_PAYMENT
+    UPCOMING_PAYMENT,
+    TRAVEL
 }
 
 public enum NudgeStatus

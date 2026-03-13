@@ -555,6 +555,7 @@ public static class SeedData
         MarkRecentWithdrawalsAsPending(db, now);
         GenerateScheduledPayments(db, scheduledPayments, now);
         GenerateBalanceSnapshots(db);
+        SeedCustomerHolidays(db, now);
         SetLastProcessedDate(db, now);
     }
 
@@ -1467,6 +1468,43 @@ public static class SeedData
                 AvailableBalance = account.Balance + pendingHolds,
             });
         }
+        db.SaveChanges();
+    }
+
+    /// <summary>
+    /// Seed registered holiday records for spotlight customers.
+    /// Grace Turner and Gabriel White "told the bank" about their trips.
+    /// Chloe Martin and Ethan Ross did NOT register, which will trigger travel nudge signals.
+    /// </summary>
+    private static void SeedCustomerHolidays(BankDbContext db, DateTime now)
+    {
+        // Grace Turner — registered her Fiji family holiday before departing
+        var grace = db.Customers.First(c => c.FirstName == "Grace" && c.LastName == "Turner");
+        var graceReturn = now.AddDays(-2);
+        var graceDeparture = graceReturn.AddDays(-9);
+        db.CustomerHolidays.Add(new CustomerHoliday
+        {
+            CustomerId = grace.Id,
+            Destination = "Fiji",
+            StartDate = DateOnly.FromDateTime(graceDeparture),
+            EndDate = DateOnly.FromDateTime(graceReturn),
+        });
+
+        // Gabriel White — registered his upcoming Bali trip when he booked
+        var gabriel = db.Customers.First(c => c.FirstName == "Gabriel" && c.LastName == "White");
+        var gabrielDeparture = now.AddDays(10);
+        var gabrielReturn = gabrielDeparture.AddDays(14);
+        db.CustomerHolidays.Add(new CustomerHoliday
+        {
+            CustomerId = gabriel.Id,
+            Destination = "Bali",
+            StartDate = DateOnly.FromDateTime(gabrielDeparture),
+            EndDate = DateOnly.FromDateTime(gabrielReturn),
+        });
+
+        // Chloe Martin — currently in Japan but did NOT register (triggers FOREIGN_SPEND_NO_HOLIDAY)
+        // Ethan Ross — booked Europe trip but did NOT register (triggers FLIGHT_BOOKING_DETECTED)
+
         db.SaveChanges();
     }
 

@@ -120,6 +120,67 @@ public class NudgeContextAssembler(
         var signals = signalDetector.DetectSignals(
             currentBalance, upcoming, spendDelta, spendByCategory, avgMonthlyExpenses, daysUntilPayday);
 
+        // === TRAVEL SIGNALS ===
+        // Check for foreign spending or flight bookings where the customer hasn't
+        // registered a holiday with the bank — this lets us proactively ask them.
+        var sevenDaysAgo = now.AddDays(-7);
+        var recentForeignTxns = transactions
+            .Where(t => t.OriginalCurrency is not null && t.CreatedAt >= sevenDaysAgo)
+            .ToList();
+
+        var registeredHolidays = await db.CustomerHolidays
+            .AsNoTracking()
+            .Where(h => h.CustomerId == customerId)
+            .ToListAsync();
+
+        if (recentForeignTxns.Count > 0)
+        {
+            // Check if any registered holiday covers the foreign spend dates
+            var hasCoveringHoliday = recentForeignTxns.All(t =>
+                registeredHolidays.Any(h =>
+                    DateOnly.FromDateTime(t.CreatedAt) >= h.StartDate &&
+                    DateOnly.FromDateTime(t.CreatedAt) <= h.EndDate));
+
+            if (!hasCoveringHoliday)
+            {
+                // Group by currency to identify the destination
+                var currencies = recentForeignTxns
+                    .Select(t => t.OriginalCurrency!)
+                    .Distinct()
+                    .ToList();
+
+                signals.Add(new NudgeSignal(
+                    SignalType.FOREIGN_SPEND_NO_HOLIDAY,
+                    SignalSeverity.MEDIUM,
+                    Category: string.Join(", ", currencies)));
+            }
+        }
+
+        // Check for recent large flight bookings without a future registered holiday
+        var flightVendors = new[] { "QANTAS", "VIRGIN AUSTRALIA", "JETSTAR", "FLIGHT CENTRE", "WEBJET",
+            "SKYSCANNER", "BOOKING.COM", "EXPEDIA", "REX AIRLINES", "SINGAPORE AIRLINES", "EMIRATES" };
+
+        var recentFlightBookings = transactions
+            .Where(t => t.CreatedAt >= sevenDaysAgo
+                        && t.Amount < -300m
+                        && t.OriginalCurrency is null // domestic AUD purchase
+                        && flightVendors.Any(v => t.Description.Contains(v, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        if (recentFlightBookings.Count > 0)
+        {
+            var hasFutureHoliday = registeredHolidays.Any(h => h.StartDate > today);
+            if (!hasFutureHoliday)
+            {
+                var booking = recentFlightBookings.OrderByDescending(t => Math.Abs(t.Amount)).First();
+                signals.Add(new NudgeSignal(
+                    SignalType.FLIGHT_BOOKING_DETECTED,
+                    SignalSeverity.MEDIUM,
+                    PaymentMerchant: booking.Description,
+                    PaymentAmount: Math.Abs(booking.Amount)));
+            }
+        }
+
         var accountInfos = accounts
             .Where(a => a.AccountType is AccountType.Transaction or AccountType.Savings or AccountType.Offset)
             .Select(a =>

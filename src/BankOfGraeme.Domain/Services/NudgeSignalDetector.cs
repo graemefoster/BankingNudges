@@ -7,7 +7,9 @@ public enum SignalType
     PAYMENT_DUE_SOON,
     SPEND_SPIKE,
     EXCESS_CASH_SITTING,
-    PAYDAY_INCOMING
+    PAYDAY_INCOMING,
+    FOREIGN_SPEND_NO_HOLIDAY,
+    FLIGHT_BOOKING_DETECTED
 }
 
 public enum SignalSeverity

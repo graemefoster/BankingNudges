@@ -61,6 +61,7 @@ app.UseCors();
 app.MapOpenApi();
 
 app.MapCustomerEndpoints();
+app.MapCustomerHolidayEndpoints();
 app.MapAccountEndpoints();
 app.MapTransactionEndpoints();
 app.MapPaymentEndpoints();

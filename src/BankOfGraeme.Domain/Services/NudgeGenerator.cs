@@ -57,12 +57,19 @@ public class NudgeGenerator(
         - When referencing interest rates or potential earnings, use neutral observational language. Prefer "For your reference" or "You may find it useful to know" framing. Never imply the customer is missing out, leaving money on the table, or could be doing better.
         - Never frame information about savings rates or account balances as an opportunity, incentive, or call to action.
 
+        Travel-specific rules:
+        - When FOREIGN_SPEND_NO_HOLIDAY or FLIGHT_BOOKING_DETECTED signals are active, generate a TRAVEL category nudge.
+        - TRAVEL nudges should warmly let the customer know we noticed their travel activity and invite them to register their holiday dates with the bank. This helps us protect their account and avoid blocking legitimate overseas transactions.
+        - Never lecture or imply the customer did something wrong by not telling the bank. Keep it helpful and friendly.
+        - Example tone: "We noticed some transactions from Japan — heading overseas? Letting us know your travel dates helps us keep your account secure."
+        - TRAVEL nudges take priority over LOW severity signals (EXCESS_CASH_SITTING, PAYDAY_INCOMING) but not over HIGH severity signals (LOW_BALANCE, CANT_COVER_UPCOMING).
+
         Return ONLY valid JSON in this exact format, no other text:
         {
           "message": "the nudge text for the customer",
-          "cta": "short label for a button that lets the customer explore further e.g. See details, View breakdown, View options",
+          "cta": "short label for a button that lets the customer explore further e.g. See details, View breakdown, View options, Register holiday",
           "urgency": "HIGH or MEDIUM or LOW",
-          "category": "CASHFLOW or SAVINGS or SPENDING or UPCOMING_PAYMENT",
+          "category": "CASHFLOW or SAVINGS or SPENDING or UPCOMING_PAYMENT or TRAVEL",
           "reasoning": "one sentence explaining why this nudge was chosen over others"
         }
         """;
@@ -157,6 +164,8 @@ public class NudgeGenerator(
                 SignalType.SPEND_SPIKE => $"  SPEND_SPIKE: {s.Category} up {s.Delta * 100:F0}% vs last month",
                 SignalType.EXCESS_CASH_SITTING => $"  EXCESS_CASH_SITTING: total usable balance ${ctx.Financial.CurrentBalance:F2} (see per-account breakdown above for where the money sits)",
                 SignalType.PAYDAY_INCOMING => $"  PAYDAY_INCOMING: in {ctx.Financial.DaysUntilLikelyPayday} days",
+                SignalType.FOREIGN_SPEND_NO_HOLIDAY => $"  FOREIGN_SPEND_NO_HOLIDAY: recent spending in {s.Category} detected but no holiday registered with the bank",
+                SignalType.FLIGHT_BOOKING_DETECTED => $"  FLIGHT_BOOKING_DETECTED: ${s.PaymentAmount:F2} at {s.PaymentMerchant} — no upcoming holiday registered",
                 _ => $"  {s.Type}"
             }));
 
@@ -253,6 +262,7 @@ public class NudgeGenerator(
             "SAVINGS" => "SAVINGS",
             "SPENDING" => "SPENDING",
             "UPCOMING_PAYMENT" => "UPCOMING_PAYMENT",
+            "TRAVEL" => "TRAVEL",
             _ => "CASHFLOW"
         };
 
