@@ -12,7 +12,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [nudgeResult, setNudgeResult] = useState<NudgeGenerateResult | null>(null);
-  const [nudgeLoading, setNudgeLoading] = useState(false);
+  const [nudgeLoading, setNudgeLoading] = useState(true);
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [activeHoliday, setActiveHoliday] = useState<ActiveHoliday | null>(null);
   const navigate = useNavigate();
@@ -32,22 +32,11 @@ export default function DashboardPage() {
     getActiveHoliday(customerId)
       .then(setActiveHoliday)
       .catch(() => { /* holiday banner is non-critical */ });
+    generateNudge(customerId)
+      .then(setNudgeResult)
+      .catch((e: unknown) => setNudgeResult({ generated: false, nudge: null, reason: e instanceof Error ? e.message : 'Something went wrong' }))
+      .finally(() => setNudgeLoading(false));
   }, [customerId, navigate]);
-
-  const handleGenerateNudge = async () => {
-    if (!customerId || nudgeLoading) return;
-    setNudgeLoading(true);
-    setNudgeDismissed(false);
-    setNudgeResult(null);
-    try {
-      const result = await generateNudge(customerId);
-      setNudgeResult(result);
-    } catch (e: unknown) {
-      setNudgeResult({ generated: false, nudge: null, reason: e instanceof Error ? e.message : 'Something went wrong' });
-    } finally {
-      setNudgeLoading(false);
-    }
-  };
 
   const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
 
@@ -98,17 +87,7 @@ export default function DashboardPage() {
           }`}>
             {nudgeResult.reason ?? 'No insights right now'}
           </div>
-        ) : (
-          <button
-            onClick={handleGenerateNudge}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-dark-elevated border border-border hover:border-accent-teal/40 transition-colors"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent-teal">
-              <path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16.4 5.6 21.2 8 14 2 9.2h7.6z" />
-            </svg>
-            <span className="text-sm font-medium text-text-secondary">Get a financial insight</span>
-          </button>
-        )}
+        ) : null}
       </div>
 
       {error && (
