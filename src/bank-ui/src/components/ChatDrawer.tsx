@@ -107,7 +107,7 @@ export default function ChatDrawer({ nudge, customerId, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col">
       {/* Backdrop */}
-      <div className="flex-1 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="flex-1 bg-black/80 backdrop-blur-md" onClick={onClose} />
 
       {/* Drawer */}
       <div className="bg-dark-base border-t border-border rounded-t-2xl flex flex-col max-h-[75vh] animate-slide-up">
