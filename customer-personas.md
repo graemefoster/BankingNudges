@@ -238,3 +238,46 @@ Four spotlight customers always have travel activity near the current virtual da
 | **Gabriel White** | Just booked | 🇮🇩 Bali | Flight Centre booking last week ($2,800). Departs in 10 days. |
 
 Travel agents include **Qantas** and **Virgin Australia** alongside Flight Centre, Webjet, Skyscanner, Booking.com, and Expedia.
+
+---
+
+## APP Fraud Scenario — "Operation Swift"
+
+The seed data includes an **Authorised Push Payment (APP) fraud scenario**. A scam network of 4 mule accounts targets 5 existing customers across different personas. The transactions are completely independent — no linking IDs or foreign keys connect them. The fraud pattern is only discoverable through **graph analysis in Neo4j**.
+
+### Mule Network
+
+| Mule | Role | Account Profile | Description |
+|------|------|----------------|-------------|
+| **Marcus Webb** (25) | Collector | 🔥 Burner — ~3 weeks old | Fresh account. Receives all victim payments. Almost no normal activity. |
+| **Jade Thornton** (30) | Layer 1 | 🏠 Established — ~8 months old | Recruited mule. Has salary, rent, groceries — looks normal. Takes ~8% commission. |
+| **Ryan Kovac** (28) | Layer 2 | 🔥 Burner — ~2 weeks old | Another fresh account. Takes ~5% commission. |
+| **Priya Desai** (33) | Cash-out | 🏠 Semi-established — ~4 months old | Final recipient. Takes ~3% commission. ATM withdrawals cash out the proceeds. |
+
+### Victims
+
+| Customer | Persona | Scam Type | Amount |
+|----------|---------|-----------|--------|
+| **Gabriel White** (72) | Comfortable Retiree | ATO impersonation ("overdue tax") | $4,800 |
+| **Margaret Kelly** (78) | Modest Retiree | Bank impersonation ("account compromised") | $2,200 |
+| **Chloe Martin** (28) | Young Professional | Romance scam ("emergency medical bills") | $5,500 |
+| **Grace Turner** (35) | Young Family | Invoice scam ("tradesperson overdue invoice") | $3,100 |
+| **Noah Patel** (22) | Zero-Hours Worker | Job deposit scam ("equipment bond") | $1,200 |
+
+### Money Flow
+
+Each victim's payment triggers an independent cascade through the mule network. The hops are **separate, unlinked bank payments** made hours apart:
+
+```
+Victim pays $X to Marcus  →  Marcus pays ~92% to Jade  →  Jade pays ~95% to Ryan  →  Ryan pays ~97% to Priya  →  ATM withdrawal
+```
+
+### Detection
+
+The fraud is invisible in relational SQL queries but discoverable through Neo4j graph traversal. Key patterns:
+- **Fan-in**: Marcus receives from 5 distinct external accounts in 2 weeks
+- **Rapid transit**: Money arrives and departs each mule account within hours
+- **Chain**: 4-hop path with decreasing amounts at each step
+- **Commission**: Consistent ~8%/~5%/~3% deduction at each layer
+
+See [README.md — APP Fraud Detection](README.md#app-fraud-detection--operation-swift) for Cypher detection queries.

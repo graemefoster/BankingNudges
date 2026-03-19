@@ -657,6 +657,7 @@ public static class SeedData
         UpdateAccountBalances(db);
         MarkRecentWithdrawalsAsPending(db, now);
         GenerateScheduledPayments(db, scheduledPayments, now);
+        SeedFraudScenario(db, now, ref accountNumber);
         GenerateBalanceSnapshots(db);
         SeedCustomerHolidays(db, now);
         SetLastProcessedDate(db, now);
@@ -1947,6 +1948,253 @@ public static class SeedData
         string LifeStage,
         int Age,
         int TenureDays);
+
+    // ────────────────────────────────────────────────────────────────────────
+    //  APP Fraud Scenario — "Operation Swift"
+    //
+    //  4 mule accounts form a layered scam network. 5 existing customers are
+    //  victims who are socially engineered into making payments to the collector
+    //  mule. Money cascades through the network with commission taken at each
+    //  hop. The transactions are completely independent — no linking IDs.
+    //  Neo4j Cypher queries discover the hidden pattern through graph traversal.
+    // ────────────────────────────────────────────────────────────────────────
+
+    private static void SeedFraudScenario(BankDbContext db, DateTime now, ref int accountNumber)
+    {
+        var rng = new Random(9999); // deterministic but separate from main seed
+        var today = now.Date;
+
+        // ── Mule definitions ──────────────────────────────────────────────
+        //  Mix of burner (new, sparse) and established (normal-looking) accounts.
+        var muleDefinitions = new[]
+        {
+            new {
+                FirstName = "Marcus", LastName = "Webb", Persona = "Zero-Hours Worker",
+                Age = 25, DaysOld = 21, // 🔥 Burner — opened ~3 weeks ago
+                Role = "Collector",
+                HasCamouflage = false,
+            },
+            new {
+                FirstName = "Jade", LastName = "Thornton", Persona = "Young Professional",
+                Age = 30, DaysOld = 240, // 🏠 Established — ~8 months old
+                Role = "Layer1",
+                HasCamouflage = true,
+            },
+            new {
+                FirstName = "Ryan", LastName = "Kovac", Persona = "Zero-Hours Worker",
+                Age = 28, DaysOld = 14, // 🔥 Burner — opened ~2 weeks ago
+                Role = "Layer2",
+                HasCamouflage = false,
+            },
+            new {
+                FirstName = "Priya", LastName = "Desai", Persona = "Young Professional",
+                Age = 33, DaysOld = 120, // 🏠 Semi-established — ~4 months old
+                Role = "CashOut",
+                HasCamouflage = true,
+            },
+        };
+
+        // ── Create mule customers & accounts ──────────────────────────────
+        var muleAccounts = new Dictionary<string, Account>(); // keyed by Role
+
+        foreach (var m in muleDefinitions)
+        {
+            var createdAt = today.AddDays(-m.DaysOld);
+            var dob = DateOnly.FromDateTime(today.AddYears(-m.Age));
+            var customer = new Customer
+            {
+                FirstName = m.FirstName,
+                LastName = m.LastName,
+                Email = $"{m.FirstName.ToLower()}.{m.LastName.ToLower()}@email.com.au",
+                Phone = $"04{rng.Next(10, 100):00} {rng.Next(100, 1000):000} {rng.Next(100, 1000):000}",
+                DateOfBirth = dob,
+                CreatedAt = createdAt,
+                Persona = m.Persona,
+            };
+            db.Customers.Add(customer);
+            db.SaveChanges();
+
+            var account = new Account
+            {
+                CustomerId = customer.Id,
+                AccountType = AccountType.Transaction,
+                Bsb = Bsb,
+                AccountNumber = (accountNumber++).ToString(),
+                Name = "Everyday Transaction",
+                Balance = 0m,
+                IsActive = true,
+                InterestRate = TransactionInterestRate,
+            };
+            db.Accounts.Add(account);
+            db.SaveChanges();
+
+            muleAccounts[m.Role] = account;
+
+            // ── Camouflage activity for established mules ─────────────────
+            if (m.HasCamouflage)
+                SeedMuleCamouflage(db, account, rng, createdAt, today);
+        }
+
+        // ── Victim payments into the scam network ─────────────────────────
+        //  Each victim is an existing customer who gets tricked into paying
+        //  the collector mule (Marcus). The descriptions look like plausible
+        //  payment reasons — the victims believe these are legitimate.
+
+        var victimSpecs = new[]
+        {
+            new { FirstName = "Gabriel", LastName = "White",  Amount = 4800m, DaysAgo = 12,
+                  Description = "ATO PAYMENT - OVERDUE TAX NOTICE" },
+            new { FirstName = "Margaret", LastName = "Kelly",  Amount = 2200m, DaysAgo = 10,
+                  Description = "SECURE ACCOUNT TRANSFER" },
+            new { FirstName = "Chloe",    LastName = "Martin", Amount = 5500m, DaysAgo = 7,
+                  Description = "MEDICAL EMERGENCY TRANSFER" },
+            new { FirstName = "Grace",    LastName = "Turner", Amount = 3100m, DaysAgo = 5,
+                  Description = "INVOICE PAYMENT - PLUMBING SERVICES" },
+            new { FirstName = "Noah",     LastName = "Patel",  Amount = 1200m, DaysAgo = 3,
+                  Description = "EQUIPMENT BOND - NEW STARTER KIT" },
+        };
+
+        var collector = muleAccounts["Collector"];
+        var layer1    = muleAccounts["Layer1"];
+        var layer2    = muleAccounts["Layer2"];
+        var cashOut   = muleAccounts["CashOut"];
+
+        // Commission rates vary slightly per transaction to avoid exact-match detection
+        var commissionRates = new[]
+        {
+            new { ToLayer1 = 0.078m, ToLayer2 = 0.052m, ToCashOut = 0.031m },
+            new { ToLayer1 = 0.082m, ToLayer2 = 0.048m, ToCashOut = 0.029m },
+            new { ToLayer1 = 0.075m, ToLayer2 = 0.055m, ToCashOut = 0.033m },
+            new { ToLayer1 = 0.085m, ToLayer2 = 0.047m, ToCashOut = 0.028m },
+            new { ToLayer1 = 0.079m, ToLayer2 = 0.051m, ToCashOut = 0.032m },
+        };
+
+        var txns = new List<Transaction>();
+
+        for (int i = 0; i < victimSpecs.Length; i++)
+        {
+            var v = victimSpecs[i];
+            var commission = commissionRates[i];
+
+            // Find the victim's everyday account (Transaction, or Offset when offset-as-everyday)
+            var victim = db.Customers.First(c => c.FirstName == v.FirstName && c.LastName == v.LastName);
+            var victimAccount = db.Accounts
+                .Where(a => a.CustomerId == victim.Id
+                    && (a.AccountType == AccountType.Transaction || a.AccountType == AccountType.Offset)
+                    && a.IsActive)
+                .OrderBy(a => a.AccountType) // Transaction (2) before Offset (3) - prefer Transaction
+                .First();
+
+            var paymentTime = today.AddDays(-v.DaysAgo).AddHours(10).AddMinutes(rng.Next(0, 120));
+
+            // ── Leg 1: Victim pays collector ──────────────────────────────
+            // Both legs share the same CreatedAt (same-bank instant settlement)
+            txns.Add(MakeTxn(victimAccount.Id, -v.Amount, v.Description,
+                TransactionType.Transfer, paymentTime));
+            txns.Add(MakeTxn(collector.Id, v.Amount, $"PAYMENT FROM {victim.FirstName.ToUpper()} {victim.LastName.ToUpper()}",
+                TransactionType.Transfer, paymentTime));
+
+            // ── Leg 2: Collector forwards to Layer 1 (hours later) ────────
+            var amount1 = Math.Round(v.Amount * (1m - commission.ToLayer1), 2);
+            var forwardTime1 = paymentTime.AddHours(rng.Next(2, 6)).AddMinutes(rng.Next(0, 60));
+            txns.Add(MakeTxn(collector.Id, -amount1, $"TRANSFER TO {layer1.AccountNumber}",
+                TransactionType.Transfer, forwardTime1));
+            txns.Add(MakeTxn(layer1.Id, amount1, $"TRANSFER FROM {collector.AccountNumber}",
+                TransactionType.Transfer, forwardTime1));
+
+            // ── Leg 3: Layer 1 forwards to Layer 2 (hours later) ──────────
+            var amount2 = Math.Round(amount1 * (1m - commission.ToLayer2), 2);
+            var forwardTime2 = forwardTime1.AddHours(rng.Next(1, 4)).AddMinutes(rng.Next(0, 60));
+            txns.Add(MakeTxn(layer1.Id, -amount2, $"TRANSFER TO {layer2.AccountNumber}",
+                TransactionType.Transfer, forwardTime2));
+            txns.Add(MakeTxn(layer2.Id, amount2, $"TRANSFER FROM {layer1.AccountNumber}",
+                TransactionType.Transfer, forwardTime2));
+
+            // ── Leg 4: Layer 2 forwards to Cash-out (next day) ────────────
+            var amount3 = Math.Round(amount2 * (1m - commission.ToCashOut), 2);
+            var forwardTime3 = forwardTime2.AddHours(rng.Next(3, 8)).AddMinutes(rng.Next(0, 60));
+            txns.Add(MakeTxn(layer2.Id, -amount3, $"TRANSFER TO {cashOut.AccountNumber}",
+                TransactionType.Transfer, forwardTime3));
+            txns.Add(MakeTxn(cashOut.Id, amount3, $"TRANSFER FROM {layer2.AccountNumber}",
+                TransactionType.Transfer, forwardTime3));
+
+            // ── Cash-out: ATM withdrawal ──────────────────────────────────
+            var withdrawAmount = RoundToNearest(amount3 - rng.Next(20, 80), 20m);
+            var withdrawTime = forwardTime3.AddHours(rng.Next(1, 3));
+            txns.Add(MakeTxn(cashOut.Id, -withdrawAmount, "ATM WITHDRAWAL",
+                TransactionType.Withdrawal, withdrawTime));
+        }
+
+        db.Transactions.AddRange(txns);
+        db.SaveChanges();
+
+        // Recalculate balances for all affected accounts
+        var affectedAccountIds = txns.Select(t => t.AccountId).Distinct().ToList();
+        foreach (var accountId in affectedAccountIds)
+        {
+            var account = db.Accounts.Find(accountId)!;
+            account.Balance = db.Transactions
+                .Where(t => t.AccountId == accountId && t.Status == TransactionStatus.Settled)
+                .Sum(t => t.Amount);
+            db.Entry(account).State = EntityState.Modified;
+        }
+        db.SaveChanges();
+    }
+
+    /// <summary>
+    /// Adds normal-looking transactions to an established mule account so it
+    /// doesn't stand out from basic account-level monitoring.
+    /// </summary>
+    private static void SeedMuleCamouflage(
+        BankDbContext db, Account account, Random rng, DateTime accountStart, DateTime today)
+    {
+        var txns = new List<Transaction>();
+        var current = accountStart.AddDays(1);
+
+        while (current < today)
+        {
+            // Fortnightly salary deposit
+            if ((current - accountStart).Days % 14 == 0)
+            {
+                var salary = Math.Round(2200m + (decimal)(rng.NextDouble() * 800), 2);
+                txns.Add(MakeTxn(account.Id, salary, "SALARY PAYMENT",
+                    TransactionType.Deposit, current.Date.AddHours(9).AddMinutes(rng.Next(0, 30))));
+            }
+
+            // Occasional grocery / daily spending
+            if (rng.NextDouble() < 0.25)
+            {
+                var groceryAmount = Math.Round(15m + (decimal)(rng.NextDouble() * 80), 2);
+                string[] shops = ["WOOLWORTHS", "COLES", "ALDI", "IGA"];
+                txns.Add(MakeTxn(account.Id, -groceryAmount,
+                    shops[rng.Next(shops.Length)],
+                    TransactionType.Withdrawal, current.Date.AddHours(12).AddMinutes(rng.Next(0, 480))));
+            }
+
+            // Monthly mobile bill
+            if (current.Day == 15)
+            {
+                var mobile = Math.Round(45m + (decimal)(rng.NextDouble() * 30), 2);
+                txns.Add(MakeTxn(account.Id, -mobile, "VODAFONE MOBILE",
+                    TransactionType.DirectDebit, current.Date.AddHours(8)));
+            }
+
+            // Monthly rent (established mules)
+            if (current.Day == 1 && current > accountStart.AddDays(14))
+            {
+                var rent = Math.Round(350m + (decimal)(rng.NextDouble() * 150), 2);
+                txns.Add(MakeTxn(account.Id, -rent, "RENT PAYMENT - RAY WHITE",
+                    TransactionType.DirectDebit, current.Date.AddHours(10)));
+            }
+
+            current = current.AddDays(1);
+        }
+
+        db.Transactions.AddRange(txns);
+        db.SaveChanges();
+    }
+
+    // ── End of APP Fraud Scenario ─────────────────────────────────────────
 
     private sealed record CustomerProfile(
         Customer Customer,
