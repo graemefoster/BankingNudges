@@ -382,7 +382,7 @@ RETURN owner.firstName + ' ' + owner.lastName AS passthroughAccount,
 ORDER BY moneyIn
 ```
 
-**4. Known-victim scam tracer** — Start from the victim's reported transfer and walk the suspected mule chain inline:
+**4. Known-victim scam tracer** — Start from the victim's reported transfer and walk the most plausible mule chain inline:
 
 ```cypher
 // This version is designed for casework: you already know the victim,
@@ -392,6 +392,8 @@ ORDER BY moneyIn
 // It is intentionally bounded to 4 hops. Without explicit transfer edges,
 // Cypher has no natural variable-length relationship to recurse over.
 // Extend by repeating the OPTIONAL MATCH pattern if you need more layers.
+// This is a heuristic query: if multiple same-amount transfers exist in the
+// pairing window, review the result as a candidate chain rather than proof.
 WITH
   2 AS customerId, // Noah Patel in the seeded scam scenario
   1200.00 AS claimedAmount,
