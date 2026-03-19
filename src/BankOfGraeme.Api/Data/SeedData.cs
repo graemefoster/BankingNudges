@@ -253,6 +253,105 @@ public static class SeedData
         ["Modest Retiree"] = new(0.12, 7, 10, [0, 1, 2], 600m, 1500m),
     };
 
+    // === BRANCH & ATM SEED DATA ===
+    // Real Australian locations for geolocation experiments.
+    // Branches are Bank of Graeme physical branches; ATMs include branch-attached and standalone.
+
+    private sealed record BranchSeed(string Name, string Address, string Suburb, string State, string Postcode, decimal Lat, decimal Lng);
+    private sealed record AtmSeed(string LocationName, string Address, string Suburb, string State, string Postcode, decimal Lat, decimal Lng, int? BranchIndex);
+
+    private static readonly BranchSeed[] BranchSeeds =
+    [
+        new("Bank of Graeme Sydney CBD", "123 George St", "Sydney", "NSW", "2000", -33.8688m, 151.2093m),
+        new("Bank of Graeme Parramatta", "45 Church St", "Parramatta", "NSW", "2150", -33.8148m, 151.0034m),
+        new("Bank of Graeme Chatswood", "12 Victoria Ave", "Chatswood", "NSW", "2067", -33.7969m, 151.1816m),
+        new("Bank of Graeme Bondi Junction", "8 Oxford St", "Bondi Junction", "NSW", "2022", -33.8919m, 151.2501m),
+        new("Bank of Graeme Melbourne CBD", "200 Collins St", "Melbourne", "VIC", "3000", -37.8136m, 144.9631m),
+        new("Bank of Graeme South Melbourne", "55 Clarendon St", "South Melbourne", "VIC", "3205", -37.8310m, 144.9567m),
+        new("Bank of Graeme Box Hill", "15 Main St", "Box Hill", "VIC", "3128", -37.8186m, 145.1215m),
+        new("Bank of Graeme Brisbane CBD", "100 Queen St", "Brisbane", "QLD", "4000", -27.4698m, 153.0251m),
+        new("Bank of Graeme Gold Coast", "30 Cavill Ave", "Surfers Paradise", "QLD", "4217", -28.0167m, 153.4000m),
+        new("Bank of Graeme Perth CBD", "80 St Georges Tce", "Perth", "WA", "6000", -31.9505m, 115.8605m),
+        new("Bank of Graeme Adelaide CBD", "50 King William St", "Adelaide", "SA", "5000", -34.9285m, 138.6007m),
+        new("Bank of Graeme Hobart", "22 Elizabeth St", "Hobart", "TAS", "7000", -42.8821m, 147.3272m),
+        new("Bank of Graeme Canberra", "10 London Circuit", "Canberra", "ACT", "2601", -35.2809m, 149.1300m),
+        new("Bank of Graeme Newcastle", "75 Hunter St", "Newcastle", "NSW", "2300", -32.9283m, 151.7817m),
+        new("Bank of Graeme Wollongong", "18 Crown St", "Wollongong", "NSW", "2500", -34.4278m, 150.8931m),
+        new("Bank of Graeme Geelong", "40 Moorabool St", "Geelong", "VIC", "3220", -38.1499m, 144.3503m),
+        new("Bank of Graeme Townsville", "5 Flinders St", "Townsville", "QLD", "4810", -19.2590m, 146.7867m),
+        new("Bank of Graeme Bendigo", "25 Mitchell St", "Bendigo", "VIC", "3550", -36.7570m, 144.2794m),
+    ];
+
+    private static readonly AtmSeed[] AtmSeeds =
+    [
+        // Branch ATMs (one per branch)
+        new("Bank of Graeme ATM - Sydney CBD", "123 George St", "Sydney", "NSW", "2000", -33.8688m, 151.2093m, 0),
+        new("Bank of Graeme ATM - Parramatta", "45 Church St", "Parramatta", "NSW", "2150", -33.8148m, 151.0034m, 1),
+        new("Bank of Graeme ATM - Chatswood", "12 Victoria Ave", "Chatswood", "NSW", "2067", -33.7969m, 151.1816m, 2),
+        new("Bank of Graeme ATM - Bondi Junction", "8 Oxford St", "Bondi Junction", "NSW", "2022", -33.8919m, 151.2501m, 3),
+        new("Bank of Graeme ATM - Melbourne CBD", "200 Collins St", "Melbourne", "VIC", "3000", -37.8136m, 144.9631m, 4),
+        new("Bank of Graeme ATM - South Melbourne", "55 Clarendon St", "South Melbourne", "VIC", "3205", -37.8310m, 144.9567m, 5),
+        new("Bank of Graeme ATM - Box Hill", "15 Main St", "Box Hill", "VIC", "3128", -37.8186m, 145.1215m, 6),
+        new("Bank of Graeme ATM - Brisbane CBD", "100 Queen St", "Brisbane", "QLD", "4000", -27.4698m, 153.0251m, 7),
+        new("Bank of Graeme ATM - Gold Coast", "30 Cavill Ave", "Surfers Paradise", "QLD", "4217", -28.0167m, 153.4000m, 8),
+        new("Bank of Graeme ATM - Perth CBD", "80 St Georges Tce", "Perth", "WA", "6000", -31.9505m, 115.8605m, 9),
+        new("Bank of Graeme ATM - Adelaide CBD", "50 King William St", "Adelaide", "SA", "5000", -34.9285m, 138.6007m, 10),
+        new("Bank of Graeme ATM - Hobart", "22 Elizabeth St", "Hobart", "TAS", "7000", -42.8821m, 147.3272m, 11),
+        new("Bank of Graeme ATM - Canberra", "10 London Circuit", "Canberra", "ACT", "2601", -35.2809m, 149.1300m, 12),
+        new("Bank of Graeme ATM - Newcastle", "75 Hunter St", "Newcastle", "NSW", "2300", -32.9283m, 151.7817m, 13),
+        new("Bank of Graeme ATM - Wollongong", "18 Crown St", "Wollongong", "NSW", "2500", -34.4278m, 150.8931m, 14),
+        new("Bank of Graeme ATM - Geelong", "40 Moorabool St", "Geelong", "VIC", "3220", -38.1499m, 144.3503m, 15),
+        new("Bank of Graeme ATM - Townsville", "5 Flinders St", "Townsville", "QLD", "4810", -19.2590m, 146.7867m, 16),
+        new("Bank of Graeme ATM - Bendigo", "25 Mitchell St", "Bendigo", "VIC", "3550", -36.7570m, 144.2794m, 17),
+        // Standalone ATMs (shopping centres, unis, transport hubs)
+        new("Westfield Sydney ATM", "188 Pitt St", "Sydney", "NSW", "2000", -33.8718m, 151.2086m, null),
+        new("UNSW Kensington ATM", "High St", "Kensington", "NSW", "2033", -33.9173m, 151.2313m, null),
+        new("Central Station ATM", "Eddy Ave", "Haymarket", "NSW", "2000", -33.8833m, 151.2060m, null),
+        new("Westfield Parramatta ATM", "159 Church St", "Parramatta", "NSW", "2150", -33.8168m, 151.0054m, null),
+        new("Macquarie Centre ATM", "Herring Rd", "Macquarie Park", "NSW", "2113", -33.7749m, 151.1263m, null),
+        new("Chadstone Shopping Centre ATM", "1341 Dandenong Rd", "Chadstone", "VIC", "3148", -37.8854m, 145.0831m, null),
+        new("Melbourne Central ATM", "211 La Trobe St", "Melbourne", "VIC", "3000", -37.8103m, 144.9629m, null),
+        new("Flinders Street Station ATM", "Flinders St", "Melbourne", "VIC", "3000", -37.8183m, 144.9671m, null),
+        new("University of Melbourne ATM", "Grattan St", "Parkville", "VIC", "3052", -37.7963m, 144.9614m, null),
+        new("Carindale Shopping Centre ATM", "1151 Creek Rd", "Carindale", "QLD", "4152", -27.5049m, 153.1021m, null),
+        new("Pacific Fair ATM", "Hooker Blvd", "Broadbeach", "QLD", "4218", -28.0368m, 153.4312m, null),
+        new("Garden City Perth ATM", "125 Riseley St", "Booragoon", "WA", "6154", -32.0395m, 115.8400m, null),
+        new("Rundle Mall ATM", "Rundle Mall", "Adelaide", "SA", "5000", -34.9225m, 138.6043m, null),
+        new("ANU Campus ATM", "University Ave", "Acton", "ACT", "2601", -35.2777m, 149.1185m, null),
+        new("Charlestown Square ATM", "30 Pearson St", "Charlestown", "NSW", "2290", -32.9600m, 151.6933m, null),
+        new("Wollongong Central ATM", "200 Crown St", "Wollongong", "NSW", "2500", -34.4250m, 150.8935m, null),
+    ];
+
+    // ATM withdrawal config per persona: (avg visits per month, min amount, max amount)
+    private sealed record AtmUsageConfig(double MonthlyFrequency, decimal AmountMin, decimal AmountMax);
+
+    private static readonly Dictionary<string, AtmUsageConfig> AtmConfigs = new()
+    {
+        ["Student"] = new(2.5, 20m, 80m),
+        ["Zero-Hours Worker"] = new(3.5, 40m, 100m),
+        ["Young Professional"] = new(1.5, 50m, 100m),
+        ["Established Professional"] = new(1.5, 50m, 200m),
+        ["Young Family"] = new(2.5, 40m, 100m),
+        ["Single Parent"] = new(2.5, 30m, 80m),
+        ["Comfortable Retiree"] = new(4.0, 50m, 200m),
+        ["Modest Retiree"] = new(3.5, 20m, 100m),
+    };
+
+    // Branch deposit config per persona: (avg deposits per month, min amount, max amount)
+    private sealed record BranchDepositConfig(double MonthlyFrequency, decimal AmountMin, decimal AmountMax);
+
+    private static readonly Dictionary<string, BranchDepositConfig> BranchDepositConfigs = new()
+    {
+        ["Student"] = new(0.5, 50m, 300m),
+        ["Zero-Hours Worker"] = new(2.5, 100m, 500m),
+        ["Young Professional"] = new(0.1, 50m, 200m),
+        ["Established Professional"] = new(0.1, 50m, 200m),
+        ["Young Family"] = new(0.5, 50m, 500m),
+        ["Single Parent"] = new(1.5, 50m, 300m),
+        ["Comfortable Retiree"] = new(2.5, 100m, 500m),
+        ["Modest Retiree"] = new(2.5, 50m, 300m),
+    };
+
     private sealed record HolidayPeriod(
         DateTime DepartureDate, int DurationDays, HolidayDestination Destination,
         decimal FlightCost, DateTime BookingDate);
@@ -358,6 +457,10 @@ public static class SeedData
 
     private static void GenerateAllData(BankDbContext db, Random rng, DateTime now)
     {
+        // Seed branches and ATMs first — they're referenced by transactions
+        var branches = SeedBranches(db);
+        var atms = SeedAtms(db, branches);
+
         var transactionBuffer = new List<Transaction>(TransactionBatchSize);
         var scheduledPayments = new List<ScheduledPaymentSeed>();
         int accountNumber = 10000001;
@@ -440,7 +543,7 @@ public static class SeedData
                 db.SaveChanges();
             }
 
-            var (txns, schedules) = GenerateTransactionHistory(rng, everydayAccount, profile, now, hasHomeLoan);
+            var (txns, schedules) = GenerateTransactionHistory(rng, everydayAccount, profile, now, hasHomeLoan, branches, atms);
 
             foreach (var txn in txns)
             {
@@ -657,12 +760,26 @@ public static class SeedData
     }
 
     private static (List<Transaction> Txns, List<ScheduledPaymentSeed> Schedules)
-        GenerateTransactionHistory(Random rng, Account account, CustomerProfile profile, DateTime now, bool hasHomeLoan)
+        GenerateTransactionHistory(Random rng, Account account, CustomerProfile profile, DateTime now, bool hasHomeLoan,
+            List<Branch> branches, List<Atm> atms)
     {
         var txns = new List<Transaction>();
         var schedules = new List<ScheduledPaymentSeed>();
         var accountStart = profile.Customer.CreatedAt;
         var persona = profile.Persona;
+
+        // Assign a home branch for this customer (creates geographic clustering)
+        var homeBranchIndex = profile.Customer.Id % branches.Count;
+        var homeBranch = branches[homeBranchIndex];
+        // Home ATMs: ATMs attached to the home branch, or nearby standalone ones
+        var homeAtms = atms.Where(a => a.BranchId == homeBranch.Id).ToList();
+        if (homeAtms.Count == 0) homeAtms = [atms[homeBranchIndex % atms.Count]];
+
+        // ATM/branch usage configs for this persona
+        var atmConfig = AtmConfigs.GetValueOrDefault(persona.Name);
+        var branchDepositConfig = BranchDepositConfigs.GetValueOrDefault(persona.Name);
+        var atmDailyProbability = atmConfig != null ? atmConfig.MonthlyFrequency / 30.0 : 0;
+        var branchDailyProbability = branchDepositConfig != null ? branchDepositConfig.MonthlyFrequency / 30.0 : 0;
 
         // Opening deposit
         var openingDeposit = persona.Name switch
@@ -848,6 +965,52 @@ public static class SeedData
                         txns.Add(MakeTxn(account.Id, -amount, desc,
                             TransactionType.Withdrawal, spendTime));
                         runningBalance -= amount;
+                    }
+                }
+            }
+
+            // === ATM WITHDRAWALS (suppressed during holidays — customer is overseas) ===
+            if (!onHoliday && atmConfig != null && rng.NextDouble() < atmDailyProbability)
+            {
+                var atmAmount = RoundToNearest(RandomDecimal(rng, atmConfig.AmountMin, atmConfig.AmountMax), 20m);
+                if (atmAmount > 0 && runningBalance >= atmAmount)
+                {
+                    var atmTime = current.Date.AddHours(rng.Next(8, 21)).AddMinutes(rng.Next(0, 60));
+                    if (atmTime <= now)
+                    {
+                        // 70% use a home ATM, 30% use a random ATM
+                        var atm = rng.NextDouble() < 0.70
+                            ? homeAtms[rng.Next(homeAtms.Count)]
+                            : atms[rng.Next(atms.Count)];
+                        var atmTxn = MakeTxn(account.Id, -atmAmount,
+                            $"ATM WITHDRAWAL - {atm.LocationName}",
+                            TransactionType.Withdrawal, atmTime);
+                        atmTxn.AtmId = atm.Id;
+                        txns.Add(atmTxn);
+                        runningBalance -= atmAmount;
+                    }
+                }
+            }
+
+            // === BRANCH DEPOSITS (suppressed during holidays) ===
+            if (!onHoliday && branchDepositConfig != null && rng.NextDouble() < branchDailyProbability)
+            {
+                var depositAmount = RoundToNearest(RandomDecimal(rng, branchDepositConfig.AmountMin, branchDepositConfig.AmountMax), 10m);
+                if (depositAmount > 0)
+                {
+                    var depositTime = current.Date.AddHours(rng.Next(9, 16)).AddMinutes(rng.Next(0, 60));
+                    if (depositTime <= now)
+                    {
+                        // 80% at home branch, 20% at a random branch
+                        var branch = rng.NextDouble() < 0.80
+                            ? homeBranch
+                            : branches[rng.Next(branches.Count)];
+                        var branchTxn = MakeTxn(account.Id, depositAmount,
+                            $"BRANCH DEPOSIT - {branch.Name}",
+                            TransactionType.Deposit, depositTime);
+                        branchTxn.BranchId = branch.Id;
+                        txns.Add(branchTxn);
+                        runningBalance += depositAmount;
                     }
                 }
             }
@@ -1707,6 +1870,55 @@ public static class SeedData
 
     private static decimal RandomDecimal(Random rng, decimal min, decimal max) =>
         Math.Round(min + (max - min) * (decimal)rng.NextDouble(), 2);
+
+    /// <summary>ATM amounts are rounded to the nearest denomination (e.g., $20 notes).</summary>
+    private static decimal RoundToNearest(decimal value, decimal denomination) =>
+        Math.Max(denomination, Math.Round(value / denomination) * denomination);
+
+    private static List<Branch> SeedBranches(BankDbContext db)
+    {
+        var branches = new List<Branch>();
+        foreach (var seed in BranchSeeds)
+        {
+            var branch = new Branch
+            {
+                Name = seed.Name,
+                Address = seed.Address,
+                Suburb = seed.Suburb,
+                State = seed.State,
+                Postcode = seed.Postcode,
+                Latitude = seed.Lat,
+                Longitude = seed.Lng,
+            };
+            branches.Add(branch);
+        }
+        db.Branches.AddRange(branches);
+        db.SaveChanges();
+        return branches;
+    }
+
+    private static List<Atm> SeedAtms(BankDbContext db, List<Branch> branches)
+    {
+        var atms = new List<Atm>();
+        foreach (var seed in AtmSeeds)
+        {
+            var atm = new Atm
+            {
+                LocationName = seed.LocationName,
+                Address = seed.Address,
+                Suburb = seed.Suburb,
+                State = seed.State,
+                Postcode = seed.Postcode,
+                Latitude = seed.Lat,
+                Longitude = seed.Lng,
+                BranchId = seed.BranchIndex.HasValue ? branches[seed.BranchIndex.Value].Id : null,
+            };
+            atms.Add(atm);
+        }
+        db.Atms.AddRange(atms);
+        db.SaveChanges();
+        return atms;
+    }
 
     private enum IncomeFrequency
     {

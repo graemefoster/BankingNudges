@@ -26,6 +26,8 @@ public class BankDbContext : DbContext
     public DbSet<ScheduledPayment> ScheduledPayments => Set<ScheduledPayment>();
     public DbSet<Nudge> Nudges => Set<Nudge>();
     public DbSet<CustomerHoliday> CustomerHolidays => Set<CustomerHoliday>();
+    public DbSet<Branch> Branches => Set<Branch>();
+    public DbSet<Atm> Atms => Set<Atm>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
@@ -106,6 +108,16 @@ public class BankDbContext : DbContext
             e.HasOne(t => t.Account)
                 .WithMany(a => a.Transactions)
                 .HasForeignKey(t => t.AccountId);
+
+            e.HasOne(t => t.Branch)
+                .WithMany()
+                .HasForeignKey(t => t.BranchId)
+                .IsRequired(false);
+
+            e.HasOne(t => t.Atm)
+                .WithMany()
+                .HasForeignKey(t => t.AtmId)
+                .IsRequired(false);
 
             e.HasIndex(t => t.CreatedAt);
             e.HasIndex(t => t.Status);
@@ -226,6 +238,35 @@ public class BankDbContext : DbContext
                 .HasForeignKey(h => h.CustomerId);
 
             e.HasIndex(h => new { h.CustomerId, h.StartDate, h.EndDate });
+        });
+
+        modelBuilder.Entity<Branch>(e =>
+        {
+            e.HasKey(b => b.Id);
+            e.Property(b => b.Name).HasMaxLength(100);
+            e.Property(b => b.Address).HasMaxLength(200);
+            e.Property(b => b.Suburb).HasMaxLength(100);
+            e.Property(b => b.State).HasMaxLength(3);
+            e.Property(b => b.Postcode).HasMaxLength(4);
+            e.Property(b => b.Latitude).HasPrecision(9, 6);
+            e.Property(b => b.Longitude).HasPrecision(9, 6);
+        });
+
+        modelBuilder.Entity<Atm>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.LocationName).HasMaxLength(200);
+            e.Property(a => a.Address).HasMaxLength(200);
+            e.Property(a => a.Suburb).HasMaxLength(100);
+            e.Property(a => a.State).HasMaxLength(3);
+            e.Property(a => a.Postcode).HasMaxLength(4);
+            e.Property(a => a.Latitude).HasPrecision(9, 6);
+            e.Property(a => a.Longitude).HasPrecision(9, 6);
+
+            e.HasOne(a => a.Branch)
+                .WithMany(b => b.Atms)
+                .HasForeignKey(a => a.BranchId)
+                .IsRequired(false);
         });
     }
 }

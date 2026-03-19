@@ -29,5 +29,11 @@ public class Transaction
     public decimal? ExchangeRate { get; set; }
     public decimal? FeeAmount { get; set; }
 
+    // Location fields — set for ATM withdrawals / branch deposits
+    public int? BranchId { get; set; }
+    public int? AtmId { get; set; }
+
     public Account Account { get; set; } = null!;
+    public Branch? Branch { get; set; }
+    public Atm? Atm { get; set; }
 }

@@ -237,3 +237,4 @@ ChatDrawer (React)→ slide-up drawer with streaming message display
 | **Per-request agent creation** | Each chat session creates a fresh agent with the specific nudge's context. No shared state between customers |
 | **SSE streaming** | Tokens stream to the frontend as they're generated for a responsive chat feel |
 | **Sessions are ephemeral** | Chat history lives in-memory during the session. Future: persist to DB for audit |
+| **Branches & ATMs have geolocations** | Branch and ATM entities carry real Australian lat/lng coordinates. Transactions link to them via optional FKs (`BranchId`, `AtmId`) — designed for future geo-spatial queries. Each seeded customer is assigned a "home branch" (`customerId % branchCount`) so ATM/branch usage clusters geographically |
