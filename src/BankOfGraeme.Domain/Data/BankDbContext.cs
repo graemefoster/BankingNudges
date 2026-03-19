@@ -121,6 +121,7 @@ public class BankDbContext : DbContext
 
             e.HasIndex(t => t.CreatedAt);
             e.HasIndex(t => t.Status);
+            e.HasIndex(t => t.TransferId);
         });
 
         modelBuilder.Entity<StaffUser>(e =>

@@ -99,10 +99,13 @@ public class ScheduledPaymentService(BankDbContext db, ILogger<ScheduledPaymentS
                     }
                     else
                     {
+                        Guid? transferId = payeeAccount is not null ? Guid.NewGuid() : null;
+
                         account.Balance -= payment.Amount;
                         db.Transactions.Add(new Transaction
                         {
                             AccountId = payment.AccountId,
+                            TransferId = transferId,
                             Amount = -payment.Amount,
                             Description = description,
                             TransactionType = TransactionType.DirectDebit,
@@ -117,6 +120,7 @@ public class ScheduledPaymentService(BankDbContext db, ILogger<ScheduledPaymentS
                             db.Transactions.Add(new Transaction
                             {
                                 AccountId = payeeAccount.Id,
+                                TransferId = transferId,
                                 Amount = payment.Amount,
                                 Description = payment.Reference ?? $"Payment from {account.Name}",
                                 TransactionType = TransactionType.DirectDebit,

@@ -57,6 +57,7 @@ export type TransactionStatus = (typeof TransactionStatus)[keyof typeof Transact
 
 export interface Transaction {
   id: string;
+  transferId: string | null;
   amount: number;
   description: string;
   transactionType: TransactionType;

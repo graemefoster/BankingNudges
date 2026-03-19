@@ -1157,10 +1157,10 @@ public static class SeedData
 
             // Repayment: debit everyday account (offset or transaction), credit home loan
             var repaymentDate = postDate.AddHours(1);
-            txns.Add(MakeTxn(homeLoan.Id, monthlyRepayment,
-                "HOME LOAN REPAYMENT", TransactionType.Repayment, repaymentDate));
-            txns.Add(MakeTxn(everydayAccount.Id, -monthlyRepayment,
-                "HOME LOAN REPAYMENT", TransactionType.Repayment, repaymentDate));
+            AddLinkedTransactions(txns,
+                everydayAccount.Id, homeLoan.Id, monthlyRepayment,
+                "HOME LOAN REPAYMENT", "HOME LOAN REPAYMENT",
+                TransactionType.Repayment, repaymentDate);
             loanBalance += monthlyRepayment;
 
             if (offsetIsEveryday)
@@ -1173,10 +1173,10 @@ public static class SeedData
                 var topUpDate = postDate.AddDays(rng.Next(1, 15));
                 if (DateOnly.FromDateTime(topUpDate) <= endDate)
                 {
-                    txns.Add(MakeTxn(offset.Id, topUp, "TRANSFER FROM EVERYDAY",
-                        TransactionType.Transfer, topUpDate));
-                    txns.Add(MakeTxn(everydayAccount.Id, -topUp, "TRANSFER TO OFFSET",
-                        TransactionType.Transfer, topUpDate));
+                    AddLinkedTransactions(txns,
+                        everydayAccount.Id, offset.Id, topUp,
+                        "TRANSFER TO OFFSET", "TRANSFER FROM EVERYDAY",
+                        TransactionType.Transfer, topUpDate);
                     manualOffsetBalance += topUp;
                 }
             }
@@ -1257,10 +1257,10 @@ public static class SeedData
 
                 if (transferDate <= dayEnd)
                 {
-                    txns.Add(MakeTxn(savings.Id, transferAmount, "Transfer from Everyday",
-                        TransactionType.Transfer, transferDate));
-                    txns.Add(MakeTxn(everydayAccount.Id, -transferAmount, "Transfer to Savings",
-                        TransactionType.Transfer, transferDate));
+                    AddLinkedTransactions(txns,
+                        everydayAccount.Id, savings.Id, transferAmount,
+                        "Transfer to Savings", "Transfer from Everyday",
+                        TransactionType.Transfer, transferDate);
                     savingsBalance += transferAmount;
                 }
             }
@@ -1284,12 +1284,10 @@ public static class SeedData
 
                     if (withdrawDate <= dayEnd)
                     {
-                        txns.Add(MakeTxn(savings.Id, -withdrawalAmount,
-                            $"Transfer to Everyday - {reason}",
-                            TransactionType.Transfer, withdrawDate));
-                        txns.Add(MakeTxn(everydayAccount.Id, withdrawalAmount,
-                            "Transfer from Savings",
-                            TransactionType.Transfer, withdrawDate));
+                        AddLinkedTransactions(txns,
+                            savings.Id, everydayAccount.Id, withdrawalAmount,
+                            $"Transfer to Everyday - {reason}", "Transfer from Savings",
+                            TransactionType.Transfer, withdrawDate);
                         savingsBalance -= withdrawalAmount;
                     }
                 }
@@ -1689,10 +1687,11 @@ public static class SeedData
 
     private static Transaction MakeTxn(
         int accountId, decimal amount, string description,
-        TransactionType type, DateTime createdAt) =>
+        TransactionType type, DateTime createdAt, Guid? transferId = null) =>
         new()
         {
             AccountId = accountId,
+            TransferId = transferId,
             Amount = amount,
             Description = description,
             TransactionType = type,
@@ -1700,6 +1699,21 @@ public static class SeedData
             SettledAt = createdAt,
             CreatedAt = createdAt,
         };
+
+    private static void AddLinkedTransactions(
+        List<Transaction> txns,
+        int fromAccountId,
+        int toAccountId,
+        decimal amount,
+        string fromDescription,
+        string toDescription,
+        TransactionType type,
+        DateTime createdAt)
+    {
+        var transferId = Guid.NewGuid();
+        txns.Add(MakeTxn(fromAccountId, -amount, fromDescription, type, createdAt, transferId));
+        txns.Add(MakeTxn(toAccountId, amount, toDescription, type, createdAt, transferId));
+    }
 
     private static Transaction MakeFailedTxn(
         int accountId, string description, string failureReason,
@@ -2089,34 +2103,34 @@ public static class SeedData
 
             // ── Leg 1: Victim pays collector ──────────────────────────────
             // Both legs share the same CreatedAt (same-bank instant settlement)
-            txns.Add(MakeTxn(victimAccount.Id, -v.Amount, v.Description,
-                TransactionType.Transfer, paymentTime));
-            txns.Add(MakeTxn(collector.Id, v.Amount, $"PAYMENT FROM {victim.FirstName.ToUpper()} {victim.LastName.ToUpper()}",
-                TransactionType.Transfer, paymentTime));
+            AddLinkedTransactions(txns,
+                victimAccount.Id, collector.Id, v.Amount,
+                v.Description, $"PAYMENT FROM {victim.FirstName.ToUpper()} {victim.LastName.ToUpper()}",
+                TransactionType.Transfer, paymentTime);
 
             // ── Leg 2: Collector forwards to Layer 1 (hours later) ────────
             var amount1 = Math.Round(v.Amount * (1m - commission.ToLayer1), 2);
             var forwardTime1 = paymentTime.AddHours(rng.Next(2, 6)).AddMinutes(rng.Next(0, 60));
-            txns.Add(MakeTxn(collector.Id, -amount1, $"TRANSFER TO {layer1.AccountNumber}",
-                TransactionType.Transfer, forwardTime1));
-            txns.Add(MakeTxn(layer1.Id, amount1, $"TRANSFER FROM {collector.AccountNumber}",
-                TransactionType.Transfer, forwardTime1));
+            AddLinkedTransactions(txns,
+                collector.Id, layer1.Id, amount1,
+                $"TRANSFER TO {layer1.AccountNumber}", $"TRANSFER FROM {collector.AccountNumber}",
+                TransactionType.Transfer, forwardTime1);
 
             // ── Leg 3: Layer 1 forwards to Layer 2 (hours later) ──────────
             var amount2 = Math.Round(amount1 * (1m - commission.ToLayer2), 2);
             var forwardTime2 = forwardTime1.AddHours(rng.Next(1, 4)).AddMinutes(rng.Next(0, 60));
-            txns.Add(MakeTxn(layer1.Id, -amount2, $"TRANSFER TO {layer2.AccountNumber}",
-                TransactionType.Transfer, forwardTime2));
-            txns.Add(MakeTxn(layer2.Id, amount2, $"TRANSFER FROM {layer1.AccountNumber}",
-                TransactionType.Transfer, forwardTime2));
+            AddLinkedTransactions(txns,
+                layer1.Id, layer2.Id, amount2,
+                $"TRANSFER TO {layer2.AccountNumber}", $"TRANSFER FROM {layer1.AccountNumber}",
+                TransactionType.Transfer, forwardTime2);
 
             // ── Leg 4: Layer 2 forwards to Cash-out (next day) ────────────
             var amount3 = Math.Round(amount2 * (1m - commission.ToCashOut), 2);
             var forwardTime3 = forwardTime2.AddHours(rng.Next(3, 8)).AddMinutes(rng.Next(0, 60));
-            txns.Add(MakeTxn(layer2.Id, -amount3, $"TRANSFER TO {cashOut.AccountNumber}",
-                TransactionType.Transfer, forwardTime3));
-            txns.Add(MakeTxn(cashOut.Id, amount3, $"TRANSFER FROM {layer2.AccountNumber}",
-                TransactionType.Transfer, forwardTime3));
+            AddLinkedTransactions(txns,
+                layer2.Id, cashOut.Id, amount3,
+                $"TRANSFER TO {cashOut.AccountNumber}", $"TRANSFER FROM {layer2.AccountNumber}",
+                TransactionType.Transfer, forwardTime3);
 
             // ── Cash-out: ATM withdrawal ──────────────────────────────────
             var withdrawAmount = RoundToNearest(amount3 - rng.Next(20, 80), 20m);

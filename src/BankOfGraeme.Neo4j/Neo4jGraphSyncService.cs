@@ -78,6 +78,7 @@ public class Neo4jGraphSyncService(BankDbContext db, IDriver neo4jDriver)
             "CREATE INDEX account_type IF NOT EXISTS FOR (a:Account) ON (a.accountType)",
             "CREATE INDEX transaction_type IF NOT EXISTS FOR (t:Transaction) ON (t.transactionType)",
             "CREATE INDEX transaction_created IF NOT EXISTS FOR (t:Transaction) ON (t.createdAt)",
+            "CREATE INDEX transaction_transfer_id IF NOT EXISTS FOR (t:Transaction) ON (t.transferId)",
             "CREATE INDEX branch_state IF NOT EXISTS FOR (b:Branch) ON (b.state)",
         };
 
@@ -273,6 +274,7 @@ public class Neo4jGraphSyncService(BankDbContext db, IDriver neo4jDriver)
                 ["status"] = t.Status.ToString(),
                 ["createdAt"] = t.CreatedAt.ToString("o"),
                 ["settledAt"] = t.SettledAt?.ToString("o"),
+                ["transferId"] = t.TransferId?.ToString(),
                 ["originalCurrency"] = t.OriginalCurrency,
                 ["originalAmount"] = t.OriginalAmount?.ToString("G"),
                 ["exchangeRate"] = t.ExchangeRate?.ToString("G"),
@@ -287,7 +289,7 @@ public class Neo4jGraphSyncService(BankDbContext db, IDriver neo4jDriver)
                     CREATE (t:Transaction {
                         id: row.id, amount: row.amount, description: row.description,
                         transactionType: row.transactionType, status: row.status,
-                        createdAt: row.createdAt, settledAt: row.settledAt,
+                        createdAt: row.createdAt, settledAt: row.settledAt, transferId: row.transferId,
                         originalCurrency: row.originalCurrency, originalAmount: row.originalAmount,
                         exchangeRate: row.exchangeRate, feeAmount: row.feeAmount
                     })
@@ -352,6 +354,43 @@ public class Neo4jGraphSyncService(BankDbContext db, IDriver neo4jDriver)
                 });
             }
             Console.WriteLine($"  ✓ RECORDED ({data.Count})");
+        }
+
+        // Transaction -[:COUNTERPART_OF]-> Transaction for exact in-bank paired movements.
+        // This is deterministic source-of-truth pairing, not heuristic downstream funds tracing.
+        {
+            var data = transactions
+                .Where(t => t.TransferId.HasValue)
+                .GroupBy(t => t.TransferId!.Value)
+                .Where(g => g.Count() == 2)
+                .Select(g =>
+                {
+                    var pair = g.OrderBy(t => t.Amount).ToList();
+                    return new Dictionary<string, object>
+                    {
+                        ["fromTransactionId"] = pair[0].Id,
+                        ["toTransactionId"] = pair[1].Id,
+                        ["transferId"] = g.Key.ToString(),
+                    };
+                })
+                .ToList();
+
+            foreach (var batch in Batch(data))
+            {
+                await session.ExecuteWriteAsync(async tx =>
+                {
+                    await tx.RunAsync(
+                        """
+                        UNWIND $batch AS row
+                        MATCH (from:Transaction {id: row.fromTransactionId})
+                        MATCH (to:Transaction {id: row.toTransactionId})
+                        CREATE (from)-[:COUNTERPART_OF {transferId: row.transferId}]->(to)
+                        CREATE (to)-[:COUNTERPART_OF {transferId: row.transferId}]->(from)
+                        """,
+                        new { batch });
+                });
+            }
+            Console.WriteLine($"  ✓ COUNTERPART_OF ({data.Count * 2})");
         }
 
         // Transaction -[:AT_BRANCH]-> Branch

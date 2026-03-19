@@ -36,7 +36,7 @@ public static class AccountEndpoints
             var transactions = await svc.GetTransactionsAsync(id, page, pageSize, search, category, from, to);
             return Results.Ok(transactions.Select(t => new
             {
-                t.Id, t.Amount, t.Description, t.TransactionType, t.Status,
+                t.Id, t.TransferId, t.Amount, t.Description, t.TransactionType, t.Status,
                 t.FailureReason, t.SettledAt, t.CreatedAt,
                 MerchantCategory = MerchantCategoryMapper.Categorise(t.Description),
                 MerchantLogoUrl = MerchantCategoryMapper.GetMerchantLogoUrl(t.Description),

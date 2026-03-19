@@ -15,6 +15,7 @@ public class Transaction
 {
     public int Id { get; set; }
     public int AccountId { get; set; }
+    public Guid? TransferId { get; set; }
     public decimal Amount { get; set; }
     public required string Description { get; set; }
     public TransactionType TransactionType { get; set; }

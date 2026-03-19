@@ -162,12 +162,14 @@ public class AccountService(BankDbContext db, IDateTimeProvider dateTime)
 
             var desc = description ?? $"Transfer to {toAccount.Name}";
             var now = dateTime.UtcNow;
+            var transferId = Guid.NewGuid();
 
             // Internal transfers settle immediately
             fromAccount.Balance -= amount;
             var fromTxn = new Transaction
             {
                 AccountId = fromAccountId,
+                TransferId = transferId,
                 Amount = -amount,
                 Description = desc,
                 TransactionType = TransactionType.Transfer,
@@ -179,6 +181,7 @@ public class AccountService(BankDbContext db, IDateTimeProvider dateTime)
             var toTxn = new Transaction
             {
                 AccountId = toAccountId,
+                TransferId = transferId,
                 Amount = amount,
                 Description = $"Transfer from {fromAccount.Name}",
                 TransactionType = TransactionType.Transfer,
@@ -255,24 +258,25 @@ public class AccountService(BankDbContext db, IDateTimeProvider dateTime)
             if (availableBalance < amount)
                 throw new InvalidOperationException("Insufficient funds");
 
-            // Force RowVersion check on fromAccount for concurrency protection
-            db.Entry(fromAccount).State = EntityState.Modified;
-
             var desc = description ?? $"Payment to {toAccount.Customer.FirstName} {toAccount.Customer.LastName}";
             var recipientRef = string.IsNullOrWhiteSpace(reference)
                 ? $"Payment from {fromAccount.Name}"
                 : reference;
 
             var now = dateTime.UtcNow;
+            var transferId = Guid.NewGuid();
 
-            // Outgoing payment is pending (like a card payment)
+            // In-bank customer payments are a single atomic movement, so both legs settle together.
+            fromAccount.Balance -= amount;
             var fromTxn = new Transaction
             {
                 AccountId = fromAccountId,
+                TransferId = transferId,
                 Amount = -amount,
                 Description = desc,
                 TransactionType = TransactionType.Transfer,
-                Status = TransactionStatus.Pending,
+                Status = TransactionStatus.Settled,
+                SettledAt = now,
             };
 
             // Incoming credit settles immediately for the recipient
@@ -280,6 +284,7 @@ public class AccountService(BankDbContext db, IDateTimeProvider dateTime)
             var toTxn = new Transaction
             {
                 AccountId = toAccount.Id,
+                TransferId = transferId,
                 Amount = amount,
                 Description = recipientRef,
                 TransactionType = TransactionType.Transfer,
