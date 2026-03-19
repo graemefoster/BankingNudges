@@ -238,3 +238,55 @@ ChatDrawer (React)→ slide-up drawer with streaming message display
 | **SSE streaming** | Tokens stream to the frontend as they're generated for a responsive chat feel |
 | **Sessions are ephemeral** | Chat history lives in-memory during the session. Future: persist to DB for audit |
 | **Branches & ATMs have geolocations** | Branch and ATM entities carry real Australian lat/lng coordinates. Transactions link to them via optional FKs (`BranchId`, `AtmId`) — designed for future geo-spatial queries. Each seeded customer is assigned a "home branch" (`customerId % branchCount`) so ATM/branch usage clusters geographically |
+
+## Neo4j Graph Snapshot
+
+A separate .NET console app (`BankOfGraeme.Neo4j`) builds a point-in-time graph snapshot of banking data in Neo4j. This enables graph-based analysis of customer relationships, branch usage patterns, and transaction flows.
+
+### Running the graph sync
+
+```bash
+# Start all infrastructure (including Neo4j)
+docker compose up -d
+
+# Run the graph sync tool
+cd src/BankOfGraeme.Neo4j
+dotnet run
+```
+
+### Neo4j Browser
+
+Open **http://localhost:7474** (credentials: `neo4j` / `neo4jdev123`) to explore the graph visually.
+
+### Graph Model
+
+| Node | Relationships |
+|------|--------------|
+| `Customer` | `-[:OWNS]->` Account |
+| `Account` | `-[:RECORDED]->` Transaction, `-[:OFFSETS]->` Account (offset→loan) |
+| `Transaction` | `-[:AT_BRANCH]->` Branch, `-[:AT_ATM]->` Atm |
+| `Atm` | `-[:LOCATED_AT]->` Branch |
+
+### Example Cypher Queries
+
+```cypher
+-- Which branches does each customer use most?
+MATCH (c:Customer)-[:OWNS]->()-[:RECORDED]->(t)-[:AT_BRANCH]->(b:Branch)
+RETURN c.firstName + ' ' + c.lastName AS customer, b.name AS branch, count(t) AS visits
+ORDER BY visits DESC LIMIT 20
+
+-- ATM usage by persona
+MATCH (c:Customer)-[:OWNS]->()-[:RECORDED]->(t)-[:AT_ATM]->(a:Atm)
+RETURN c.persona, a.locationName, count(t) AS uses
+ORDER BY uses DESC
+
+-- Customer account graph (good starting point for visual exploration)
+MATCH (c:Customer)-[:OWNS]->(a:Account)
+RETURN c, a LIMIT 50
+```
+
+### Design Notes
+
+- **Snapshot, not real-time**: The sync clears and reloads the full graph. Run it whenever you want a fresh snapshot. Real-time CDC can be added later.
+- **Idempotent**: Safe to run multiple times — always produces the same result.
+- **Batch loading**: Uses Cypher `UNWIND` for bulk operations (~1000 items per batch) for good performance even with 150k+ transactions.

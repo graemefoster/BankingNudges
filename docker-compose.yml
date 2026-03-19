@@ -16,6 +16,22 @@ services:
       timeout: 3s
       retries: 10
 
+  neo4j:
+    image: neo4j:5-community
+    container_name: bankofgraeme-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/neo4jdev123
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4jdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite
     container_name: bankofgraeme-azurite
@@ -31,3 +47,4 @@ services:
 
 volumes:
   pgdata:
+  neo4jdata:

@@ -35,6 +35,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkerExtensions", "src\Ban
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BankOfGraeme.Tests", "src\BankOfGraeme.Tests\BankOfGraeme.Tests.csproj", "{18878025-D822-4A73-A6E5-93AAFE54D127}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BankOfGraeme.Neo4j", "src\BankOfGraeme.Neo4j\BankOfGraeme.Neo4j.csproj", "{7300E005-9718-4E70-A957-AB4CE2B15329}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -129,6 +131,18 @@ Global
 		{18878025-D822-4A73-A6E5-93AAFE54D127}.Release|x64.Build.0 = Release|Any CPU
 		{18878025-D822-4A73-A6E5-93AAFE54D127}.Release|x86.ActiveCfg = Release|Any CPU
 		{18878025-D822-4A73-A6E5-93AAFE54D127}.Release|x86.Build.0 = Release|Any CPU
+		{7300E005-9718-4E70-A957-AB4CE2B15329}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7300E005-9718-4E70-A957-AB4CE2B15329}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7300E005-9718-4E70-A957-AB4CE2B15329}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7300E005-9718-4E70-A957-AB4CE2B15329}.Debug|x64.Build.0 = Debug|Any CPU
+		{7300E005-9718-4E70-A957-AB4CE2B15329}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7300E005-9718-4E70-A957-AB4CE2B15329}.Debug|x86.Build.0 = Debug|Any CPU
+		{7300E005-9718-4E70-A957-AB4CE2B15329}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7300E005-9718-4E70-A957-AB4CE2B15329}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7300E005-9718-4E70-A957-AB4CE2B15329}.Release|x64.ActiveCfg = Release|Any CPU
+		{7300E005-9718-4E70-A957-AB4CE2B15329}.Release|x64.Build.0 = Release|Any CPU
+		{7300E005-9718-4E70-A957-AB4CE2B15329}.Release|x86.ActiveCfg = Release|Any CPU
+		{7300E005-9718-4E70-A957-AB4CE2B15329}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -148,6 +162,7 @@ Global
 		{44C9DC00-F4D3-2DF5-47D3-6EA3A42D26C7} = {63E2DCD5-D72B-B2BF-D198-674D23E0E5F0}
 		{1DC589CD-65F3-409C-025D-424EC3BD5951} = {44C9DC00-F4D3-2DF5-47D3-6EA3A42D26C7}
 		{18878025-D822-4A73-A6E5-93AAFE54D127} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{7300E005-9718-4E70-A957-AB4CE2B15329} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7F24343A-1F22-4AFE-96D7-8DEC32289AE2}
