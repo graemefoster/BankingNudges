@@ -382,67 +382,175 @@ RETURN owner.firstName + ' ' + owner.lastName AS passthroughAccount,
 ORDER BY moneyIn
 ```
 
-**4. Scam chain tracer** — Follow reported scam proceeds across an unknown number of mule hops:
+**4. Known-victim scam tracer** — Start from the victim's reported transfer and walk the suspected mule chain inline:
 
 ```cypher
-// Step 1: derive synthetic TRANSFER_TO edges between accounts.
-// This is not source-of-truth banking data - it is an analysis shortcut
-// inferred from matching transfer debit/credit pairs.
-MATCH (src:Account)-[:RECORDED]->(debit:Transaction),
-      (dst:Account)-[:RECORDED]->(credit:Transaction)
-WHERE src <> dst
-  AND debit.transactionType = 'Transfer'
-  AND credit.transactionType = 'Transfer'
-  AND debit.status = 'Settled'
-  AND credit.status = 'Settled'
-  AND toFloat(debit.amount) < 0
-  AND toFloat(credit.amount) > 0
-  AND datetime(credit.createdAt) >= datetime(debit.createdAt) - duration('PT5M')
-  AND datetime(credit.createdAt) <= datetime(debit.createdAt) + duration('PT5M')
-  AND abs(abs(toFloat(debit.amount)) - toFloat(credit.amount)) <= 0.01
-MERGE (src)-[r:TRANSFER_TO {debitTxnId: debit.id, creditTxnId: credit.id}]->(dst)
-SET r.sentAt     = debit.createdAt,
-    r.outAmount  = abs(toFloat(debit.amount)),
-    r.inAmount   = toFloat(credit.amount),
-    r.lossAmount = abs(toFloat(debit.amount)) - toFloat(credit.amount),
-    r.lossPct    = CASE
-                     WHEN abs(toFloat(debit.amount)) = 0 THEN 0.0
-                     ELSE 1.0 - (toFloat(credit.amount) / abs(toFloat(debit.amount)))
-                   END;
-
-// Step 2: trace a reported scam payment through the chain.
-// Replace these seed values with the customer, amount, and rough timestamp
-// from the case you are investigating. LIMIT 1 returns the most complete
-// candidate chain first; widen or remove it if you want alternative paths.
+// This version is designed for casework: you already know the victim,
+// the rough time, and the reported amount. It does not pre-build
+// TRANSFER_TO edges across the whole graph.
+//
+// It is intentionally bounded to 4 hops. Without explicit transfer edges,
+// Cypher has no natural variable-length relationship to recurse over.
+// Extend by repeating the OPTIONAL MATCH pattern if you need more layers.
 WITH
   2 AS customerId, // Noah Patel in the seeded scam scenario
   1200.00 AS claimedAmount,
   datetime('2026-03-16T10:20:00Z') AS approxAt,
   duration('PT90M') AS firstHopWindow,
   50.00 AS firstHopAmountTolerance,
+  duration('PT5M') AS pairWindow,
   duration('PT24H') AS maxGapPerHop,
   0.70 AS minRetentionPct,
   1.00 AS maxRetentionPct
-MATCH (victim:Customer {id: customerId})-[:OWNS]->(start:Account)-[first:TRANSFER_TO]->(a1:Account)
-WHERE datetime(first.sentAt) >= approxAt - firstHopWindow
-  AND datetime(first.sentAt) <= approxAt + firstHopWindow
-  AND abs(first.outAmount - claimedAmount) <= firstHopAmountTolerance
-MATCH p = (a1)-[rest:TRANSFER_TO*0..6]->(:Account)
-WHERE all(n IN ([start] + nodes(p)) WHERE single(m IN ([start] + nodes(p)) WHERE m = n))
-WITH victim, start, [first] + rest AS hops, [start] + nodes(p) AS accounts
-WHERE all(i IN range(1, size(hops) - 1) WHERE
-    datetime(hops[i].sentAt) >= datetime(hops[i - 1].sentAt) AND
-    datetime(hops[i].sentAt) <= datetime(hops[i - 1].sentAt) + maxGapPerHop AND
-    hops[i].outAmount <= hops[i - 1].inAmount * maxRetentionPct AND
-    hops[i].outAmount >= hops[i - 1].inAmount * minRetentionPct
-)
-UNWIND range(0, size(accounts) - 1) AS idx
-WITH victim, start, hops, accounts, idx, accounts[idx] AS acct
-OPTIONAL MATCH (owner:Customer)-[:OWNS]->(acct)
-WITH victim, start, hops, accounts, idx, owner
-ORDER BY idx
-WITH victim, start, hops, accounts,
-     collect(coalesce(owner.firstName + ' ' + owner.lastName, 'unknown')) AS owners
+MATCH (victim:Customer {id: customerId})-[:OWNS]->(start:Account)-[:RECORDED]->(vDebit:Transaction)
+WHERE vDebit.transactionType = 'Transfer'
+  AND vDebit.status = 'Settled'
+  AND toFloat(vDebit.amount) < 0
+  AND datetime(vDebit.createdAt) >= approxAt - firstHopWindow
+  AND datetime(vDebit.createdAt) <= approxAt + firstHopWindow
+  AND abs(abs(toFloat(vDebit.amount)) - claimedAmount) <= firstHopAmountTolerance
+WITH victim, start, vDebit, claimedAmount, pairWindow, maxGapPerHop, minRetentionPct, maxRetentionPct,
+     abs(abs(toFloat(vDebit.amount)) - claimedAmount) AS amountDelta,
+     abs(datetime(vDebit.createdAt).epochSeconds - approxAt.epochSeconds) AS secondsDelta
+ORDER BY amountDelta ASC, secondsDelta ASC
+LIMIT 1
+MATCH (collectorAcct:Account)-[:RECORDED]->(collectorCredit:Transaction)
+WHERE collectorAcct <> start
+  AND collectorCredit.transactionType = 'Transfer'
+  AND collectorCredit.status = 'Settled'
+  AND toFloat(collectorCredit.amount) > 0
+  AND datetime(collectorCredit.createdAt) >= datetime(vDebit.createdAt) - pairWindow
+  AND datetime(collectorCredit.createdAt) <= datetime(vDebit.createdAt) + pairWindow
+  AND abs(toFloat(collectorCredit.amount) - abs(toFloat(vDebit.amount))) <= 0.01
+OPTIONAL MATCH (collector:Customer)-[:OWNS]->(collectorAcct)
+WITH victim, start, vDebit, collectorAcct, collector, collectorCredit, pairWindow, maxGapPerHop, minRetentionPct, maxRetentionPct
+ORDER BY abs(datetime(collectorCredit.createdAt).epochSeconds - datetime(vDebit.createdAt).epochSeconds) ASC
+LIMIT 1
+WITH victim, start, vDebit, collectorAcct, collector, collectorCredit,
+     {
+       fromOwner: victim.firstName + ' ' + victim.lastName,
+       fromAccount: start.accountNumber,
+       fromAccountId: start.id,
+       toOwner: coalesce(collector.firstName + ' ' + collector.lastName, 'unknown'),
+       toAccount: collectorAcct.accountNumber,
+       toAccountId: collectorAcct.id,
+       sentAt: vDebit.createdAt,
+       outAmount: abs(toFloat(vDebit.amount)),
+       inAmount: toFloat(collectorCredit.amount)
+     } AS hop1,
+     pairWindow, maxGapPerHop, minRetentionPct, maxRetentionPct
+CALL {
+  WITH start, collectorAcct, collectorCredit, hop1, pairWindow, maxGapPerHop, minRetentionPct, maxRetentionPct
+  OPTIONAL MATCH (collectorAcct)-[:RECORDED]->(h2Debit:Transaction),
+                 (layer1Acct:Account)-[:RECORDED]->(h2Credit:Transaction)
+  WHERE h2Debit.transactionType = 'Transfer'
+    AND h2Debit.status = 'Settled'
+    AND toFloat(h2Debit.amount) < 0
+    AND datetime(h2Debit.createdAt) >= datetime(collectorCredit.createdAt)
+    AND datetime(h2Debit.createdAt) <= datetime(collectorCredit.createdAt) + maxGapPerHop
+    AND abs(toFloat(h2Debit.amount)) <= hop1.inAmount * maxRetentionPct
+    AND abs(toFloat(h2Debit.amount)) >= hop1.inAmount * minRetentionPct
+    AND layer1Acct.id <> start.id
+    AND layer1Acct.id <> collectorAcct.id
+    AND h2Credit.transactionType = 'Transfer'
+    AND h2Credit.status = 'Settled'
+    AND toFloat(h2Credit.amount) > 0
+    AND datetime(h2Credit.createdAt) >= datetime(h2Debit.createdAt) - pairWindow
+    AND datetime(h2Credit.createdAt) <= datetime(h2Debit.createdAt) + pairWindow
+    AND abs(toFloat(h2Credit.amount) - abs(toFloat(h2Debit.amount))) <= 0.01
+  OPTIONAL MATCH (layer1:Customer)-[:OWNS]->(layer1Acct)
+  WITH collectorAcct, collectorCredit, hop1, h2Debit, h2Credit, layer1Acct, layer1
+  ORDER BY abs(datetime(h2Debit.createdAt).epochSeconds - datetime(collectorCredit.createdAt).epochSeconds) ASC,
+           layer1Acct.id ASC
+  RETURN CASE WHEN h2Debit IS NULL THEN NULL ELSE {
+    fromOwner: hop1.toOwner,
+    fromAccount: collectorAcct.accountNumber,
+    fromAccountId: collectorAcct.id,
+    toOwner: coalesce(layer1.firstName + ' ' + layer1.lastName, 'unknown'),
+    toAccount: layer1Acct.accountNumber,
+    toAccountId: layer1Acct.id,
+    sentAt: h2Debit.createdAt,
+    outAmount: abs(toFloat(h2Debit.amount)),
+    inAmount: toFloat(h2Credit.amount)
+  } END AS hop2
+  LIMIT 1
+}
+CALL {
+  WITH start, collectorAcct, hop2, pairWindow, maxGapPerHop, minRetentionPct, maxRetentionPct
+  OPTIONAL MATCH (layer1Acct:Account {id: hop2.toAccountId})-[:RECORDED]->(h3Debit:Transaction),
+                 (layer2Acct:Account)-[:RECORDED]->(h3Credit:Transaction)
+  WHERE h3Debit.transactionType = 'Transfer'
+    AND h3Debit.status = 'Settled'
+    AND toFloat(h3Debit.amount) < 0
+    AND datetime(h3Debit.createdAt) >= datetime(hop2.sentAt)
+    AND datetime(h3Debit.createdAt) <= datetime(hop2.sentAt) + maxGapPerHop
+    AND abs(toFloat(h3Debit.amount)) <= hop2.inAmount * maxRetentionPct
+    AND abs(toFloat(h3Debit.amount)) >= hop2.inAmount * minRetentionPct
+    AND layer2Acct.id <> start.id
+    AND layer2Acct.id <> collectorAcct.id
+    AND layer2Acct.id <> hop2.toAccountId
+    AND h3Credit.transactionType = 'Transfer'
+    AND h3Credit.status = 'Settled'
+    AND toFloat(h3Credit.amount) > 0
+    AND datetime(h3Credit.createdAt) >= datetime(h3Debit.createdAt) - pairWindow
+    AND datetime(h3Credit.createdAt) <= datetime(h3Debit.createdAt) + pairWindow
+    AND abs(toFloat(h3Credit.amount) - abs(toFloat(h3Debit.amount))) <= 0.01
+  OPTIONAL MATCH (layer2:Customer)-[:OWNS]->(layer2Acct)
+  WITH hop2, h3Debit, h3Credit, layer2Acct, layer2
+  ORDER BY abs(datetime(h3Debit.createdAt).epochSeconds - datetime(hop2.sentAt).epochSeconds) ASC,
+           layer2Acct.id ASC
+  RETURN CASE WHEN h3Debit IS NULL THEN NULL ELSE {
+    fromOwner: hop2.toOwner,
+    fromAccount: hop2.toAccount,
+    fromAccountId: hop2.toAccountId,
+    toOwner: coalesce(layer2.firstName + ' ' + layer2.lastName, 'unknown'),
+    toAccount: layer2Acct.accountNumber,
+    toAccountId: layer2Acct.id,
+    sentAt: h3Debit.createdAt,
+    outAmount: abs(toFloat(h3Debit.amount)),
+    inAmount: toFloat(h3Credit.amount)
+  } END AS hop3
+  LIMIT 1
+}
+CALL {
+  WITH start, collectorAcct, hop2, hop3, pairWindow, maxGapPerHop, minRetentionPct, maxRetentionPct
+  OPTIONAL MATCH (layer2Acct:Account {id: hop3.toAccountId})-[:RECORDED]->(h4Debit:Transaction),
+                 (cashOutAcct:Account)-[:RECORDED]->(h4Credit:Transaction)
+  WHERE h4Debit.transactionType = 'Transfer'
+    AND h4Debit.status = 'Settled'
+    AND toFloat(h4Debit.amount) < 0
+    AND datetime(h4Debit.createdAt) >= datetime(hop3.sentAt)
+    AND datetime(h4Debit.createdAt) <= datetime(hop3.sentAt) + maxGapPerHop
+    AND abs(toFloat(h4Debit.amount)) <= hop3.inAmount * maxRetentionPct
+    AND abs(toFloat(h4Debit.amount)) >= hop3.inAmount * minRetentionPct
+    AND cashOutAcct.id <> start.id
+    AND cashOutAcct.id <> collectorAcct.id
+    AND cashOutAcct.id <> hop2.toAccountId
+    AND cashOutAcct.id <> hop3.toAccountId
+    AND h4Credit.transactionType = 'Transfer'
+    AND h4Credit.status = 'Settled'
+    AND toFloat(h4Credit.amount) > 0
+    AND datetime(h4Credit.createdAt) >= datetime(h4Debit.createdAt) - pairWindow
+    AND datetime(h4Credit.createdAt) <= datetime(h4Debit.createdAt) + pairWindow
+    AND abs(toFloat(h4Credit.amount) - abs(toFloat(h4Debit.amount))) <= 0.01
+  OPTIONAL MATCH (cashOut:Customer)-[:OWNS]->(cashOutAcct)
+  WITH hop3, h4Debit, h4Credit, cashOutAcct, cashOut
+  ORDER BY abs(datetime(h4Debit.createdAt).epochSeconds - datetime(hop3.sentAt).epochSeconds) ASC,
+           cashOutAcct.id ASC
+  RETURN CASE WHEN h4Debit IS NULL THEN NULL ELSE {
+    fromOwner: hop3.toOwner,
+    fromAccount: hop3.toAccount,
+    fromAccountId: hop3.toAccountId,
+    toOwner: coalesce(cashOut.firstName + ' ' + cashOut.lastName, 'unknown'),
+    toAccount: cashOutAcct.accountNumber,
+    toAccountId: cashOutAcct.id,
+    sentAt: h4Debit.createdAt,
+    outAmount: abs(toFloat(h4Debit.amount)),
+    inAmount: toFloat(h4Credit.amount)
+  } END AS hop4
+  LIMIT 1
+}
+WITH victim, start, [h IN [hop1, hop2, hop3, hop4] WHERE h IS NOT NULL] AS hops
 RETURN victim.firstName + ' ' + victim.lastName AS victim,
        start.accountNumber AS sourceAccount,
        size(hops) AS hopCount,
@@ -451,13 +559,13 @@ RETURN victim.firstName + ' ' + victim.lastName AS victim,
        round((hops[size(hops) - 1].inAmount / hops[0].outAmount) * 1000) / 10.0 AS retainedPct,
        [i IN range(0, size(hops) - 1) | {
          hop: i + 1,
-         fromOwner: owners[i],
-         fromAccount: accounts[i].accountNumber,
-         toOwner: owners[i + 1],
-         toAccount: accounts[i + 1].accountNumber,
-         sentAt: hops[i].sentAt,
-         outAmount: round(hops[i].outAmount * 100) / 100.0,
-         inAmount: round(hops[i].inAmount * 100) / 100.0,
+          fromOwner: hops[i].fromOwner,
+          fromAccount: hops[i].fromAccount,
+          toOwner: hops[i].toOwner,
+          toAccount: hops[i].toAccount,
+          sentAt: hops[i].sentAt,
+          outAmount: round(hops[i].outAmount * 100) / 100.0,
+          inAmount: round(hops[i].inAmount * 100) / 100.0,
          dropVsPrevHop: round(
            (CASE WHEN i = 0 THEN 0.0 ELSE hops[i - 1].inAmount - hops[i].inAmount END) * 100
          ) / 100.0,
